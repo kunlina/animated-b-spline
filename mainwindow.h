@@ -88,9 +88,6 @@ private:
   /// break curve into multiple Bezier curves and interpolate each Bezier curve.
   void interpolateCurve();
 
-  /// clearPoints - delete all control points properly.
-  void clearPoints();
-
   /// fillKnotVector - fill \var knotVector with knots for uniform cubic
   /// B-spline that passes through endpoints.
   void fillKnotVector();
@@ -99,9 +96,10 @@ private:
 
   /// addControlPoint - adds control point within borders of \var graphicsView.
   void addControlPoint();
+  /// clearPoints - delete all control points properly.
+  void clearPoints();
 
   void showControlPoints();
-
 
   struct DisplaySettings {
     DisplaySettings() : showInterpolatedPoints(false), showControlPoints(true),
