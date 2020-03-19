@@ -15,7 +15,7 @@ class MainWindow;
 
 class MainWindow : public QMainWindow {
   Q_OBJECT
-  
+
 public:
   explicit MainWindow(QWidget *parent = 0);
   ~MainWindow();
@@ -34,14 +34,10 @@ private slots:
   void on_AntialiasingSlider_sliderMoved(int position);
   void on_SpeedSlider_sliderMoved(int position);
 
-  /// updateView - calculate content of the scene based on control points and
-  /// show it in graphicsView.
   void updateView(QPointF *skipPoint = 0);
 
-  /// moveCurve - moves control points according to its speed and updates view.
   void moveCurve();
 
-  /// updateFPS - show FPS in gui.
   void updateFPS();
 
   void on_AntialiasingSlider_valueChanged(int value);
@@ -99,8 +95,13 @@ private:
   /// B-spline that passes through endpoints.
   void fillKnotVector();
 
+  void showKnotVector();
+
   /// addControlPoint - adds control point within borders of \var graphicsView.
   void addControlPoint();
+
+  void showControlPoints();
+
 
   struct DisplaySettings {
     DisplaySettings() : showInterpolatedPoints(false), showControlPoints(true),

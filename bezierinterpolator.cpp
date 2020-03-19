@@ -19,7 +19,8 @@ void BezierInterpolator::InterpolateBezier(double x1, double y1,
                                            double x3, double y3,
                                            double x4, double y4,
                                            QPolygonF &interpolatedPoints,
-                                           unsigned level) const {
+                                           unsigned level) const
+{
   if(level > curveRecursionLimit) {
     return;
   }
@@ -159,7 +160,8 @@ void BezierInterpolator::InterpolateBezier(double x1, double y1,
 void BezierInterpolator::InterpolateBezier(const QPointF &p1, const QPointF &p2,
                                            const QPointF &p3, const QPointF &p4,
                                            QPolygonF &interpolatedPoints,
-                                           unsigned level) const {
+                                           unsigned level) const
+{
   InterpolateBezier(p1.x(), p1.y(), p2.x(), p2.y(), p3.x(), p3.y(), p4.x(),
                     p4.y(), interpolatedPoints, level);
 }
@@ -168,7 +170,8 @@ void BezierInterpolator::InterpolateBezier(const QPointF &p1, const QPointF &p2,
 // transformation of B-spline into composite Bezier curve.
 void BezierInterpolator::CalculateBoorNet(const QVector<QPointF *> &controlPoints,
     const QVector<qreal> &knotVector,
-    QPolygonF &boorNetPoints) const {
+    QPolygonF &boorNetPoints) const
+{
   Q_ASSERT(controlPoints.size() > 2);
   Q_ASSERT(knotVector.size() > 4);
   // We draw uniform cubic B-spline that passes through endpoints, so we assume
