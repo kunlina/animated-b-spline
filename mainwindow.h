@@ -5,7 +5,8 @@
 #include <QGraphicsScene>
 #include <QHash>
 #include <QTimer>
-#include "bezierinterpolator.h"
+#include "bezier/bezierinterpolator.h"
+#include "geometry/GeometryCompute.h"
 
 class MovingEllipseItem;
 
@@ -22,17 +23,26 @@ public:
 
 private slots:
   // Slots for ui (bells and whistles).
-  void on_startStopButton_clicked();
   void on_checkBox_stateChanged(int arg1);
   void on_checkBox_2_stateChanged(int arg1);
   void on_checkBox_3_stateChanged(int arg1);
   void on_checkBox_4_stateChanged(int arg1);
   void on_checkBox_5_stateChanged(int arg1);
+
+  void on_startStopButton_clicked();
   void on_RandomButton_clicked();
   void on_AddPointButton_clicked();
   void on_DelPointButton_clicked();
+
   void on_AntialiasingSlider_sliderMoved(int position);
+  void on_AntialiasingSlider_valueChanged(int value);
   void on_SpeedSlider_sliderMoved(int position);
+  void on_SpeedSlider_valueChanged(int value);
+  void on_horizontalSlider_sliderMoved(int position);
+  void on_horizontalSlider_valueChanged(int value);
+  void on_controlPtSlider_sliderMoved(int position);
+  void on_controlPtSlider_valueChanged(int position);
+
 
   void updateView(QPointF *skipPoint = 0);
 
@@ -40,13 +50,6 @@ private slots:
 
   void updateFPS();
 
-  void on_AntialiasingSlider_valueChanged(int value);
-
-  void on_SpeedSlider_valueChanged(int value);
-
-  void on_horizontalSlider_sliderMoved(int position);
-
-  void on_horizontalSlider_valueChanged(int value);
 
 private:
   // Crunch. After moving of control point scene must be rerendered and I am too
@@ -78,6 +81,8 @@ private:
 
   // Object with interface to boor net calculator and Bezier interpolation.
   BezierInterpolator bezierInterpolator;
+  GeometryCompute easybezierInterpolator;
+  QPolygonF easyBezierInterpolatedPoints;
 
   int pointsNumber;
 
@@ -101,15 +106,23 @@ private:
 
   void showControlPoints();
 
+  void updateStatusBar();
+
   struct DisplaySettings {
-    DisplaySettings() : showInterpolatedPoints(false), showControlPoints(true),
-      showBoorPoints(false), showControlLines(true), showBoorLines(false) {}
+    DisplaySettings() : showInterpolatedPoints(false), showBezierLine(true), showControlPoints(true),
+      showBoorPoints(false), showControlLines(true), showBoorLines(false),
+      showEasyBezierLine(true), showEasyBezierInterpolatedPoints(true), controlPointSize(10)
+    {}
 
     bool showInterpolatedPoints;
+    bool showBezierLine;
     bool showControlPoints;
     bool showBoorPoints;
     bool showControlLines;
     bool showBoorLines;
+    bool showEasyBezierLine;
+    bool showEasyBezierInterpolatedPoints;
+    int controlPointSize;
   } displaySettings;
 };
 

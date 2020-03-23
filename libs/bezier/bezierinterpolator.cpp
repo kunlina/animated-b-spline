@@ -10,7 +10,7 @@ const double BezierInterpolator::AngleTolerance = 0.0;
 const double BezierInterpolator::CuspLimit = 0.0;
 
 BezierInterpolator::BezierInterpolator()
-    : DistanceTolerance(0.5)
+    : DistanceTolerance(50)
 {}
 
 // InterpolateBezier - interpolates points with bezier curve.

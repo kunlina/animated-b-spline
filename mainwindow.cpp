@@ -8,7 +8,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
     , framesNumber(0)
     , speedMultiplicator(1.0)
-    , pointsNumber(5)
+    , pointsNumber(4)
 {
     ui->setupUi(this);
     displaySettings.showInterpolatedPoints = true;
@@ -25,7 +25,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->graphicsView->setScene(scene);
     showRandomSpline();
 
-    ui->ControlPointsLabel->setText(QString::number(pointsNumber));
+    updateStatusBar();
 }
 
 MainWindow::~MainWindow()
@@ -70,13 +70,77 @@ void MainWindow::interpolateCurve()
     bezierInterpolator.CalculateBoorNet(controlPoints, knotVector, boorNetPoints);
     interpolatedPoints.push_back(*(controlPoints.first()));
 
+    easyBezierInterpolatedPoints.clear();
+    easyBezierInterpolatedPoints.append(*(controlPoints.first()));
+
     for (int counter = 0; counter < boorNetPoints.size() - 3; counter += 3) {
         bezierInterpolator.InterpolateBezier(boorNetPoints[counter],
                                              boorNetPoints[counter + 1],
-                boorNetPoints[counter + 2],
-                boorNetPoints[counter + 3],
-                interpolatedPoints);
+                                             boorNetPoints[counter + 2],
+                                             boorNetPoints[counter + 3],
+                                             interpolatedPoints);
+
+
+        int ret = 0;
+        Point pts[4];
+        for (int i = 0; i < 4; ++i) {
+            pts[i].x = boorNetPoints[counter+i].x();
+            pts[i].y = boorNetPoints[counter+i].y();
+        }
+        ControlPoints cpts;
+        cpts.points = pts;
+        cpts.degree = 3;
+
+        PointArray ptout;
+        ptout.usedIndex = 0;
+        ptout.totalNum = 1000;
+        ptout.points = (Point *)malloc(ptout.totalNum * sizeof(Point));
+
+        ret = easybezierInterpolator.InterpolateBezier(cpts, ptout);
+        if (ret != GeometryCompute::SUCCESS)  {
+            qWarning("Interpolate error %d.", ret);
+        }
+
+        QPointF tmp;
+        for (int i = 0; i < ptout.usedIndex; ++i) {
+            tmp.setX(ptout.points[i].x);
+            tmp.setY(ptout.points[i].y);
+            easyBezierInterpolatedPoints.push_back(tmp);
+        }
+
+        free(ptout.points);
+
+#if 0
+        int size = sizeof(double)*1000;
+        double *out = (double *)malloc(size);
+        int ret = 0;
+        int outsize = 0;
+        double contrlPt[4*2] = {0.0};
+        for (int i = 0; i < 4; ++i) {
+            contrlPt[i*2] = boorNetPoints[counter+i].x();
+            contrlPt[i*2+1] = boorNetPoints[counter+i].y();
+        }
+
+        int degree = 3;
+        int dim = 2;
+        ret = easybezierInterpolator.InterpolateBezier(contrlPt, degree, dim, out, size, &outsize);
+        if (ret != GeometryCompute::SUCCESS)  {
+            qWarning("Interpolate error %d.", ret);
+        }
+
+        QPointF tmp;
+        for (int i = 0; i < outsize/(2*sizeof(double)); ++i) {
+            tmp.setX(out[i*2]);
+            tmp.setY(out[i*2 + 1]);
+            easyBezierInterpolatedPoints.push_back(tmp);
+        }
+
+        free(out);
+#endif
     }
+
+    easyBezierInterpolatedPoints.push_back(*(controlPoints.last()));
+
     interpolatedPoints.push_back(*(controlPoints.last()));
 }
 
@@ -110,6 +174,14 @@ void MainWindow::showControlPoints()
     ui->controlpoints->setText(cps);
 }
 
+void MainWindow::updateStatusBar()
+{
+    QString content(QString("Fps %1, Control Points %2, Interpolated Points %3")
+                    .arg(framesNumber).arg(pointsNumber).arg(interpolatedPoints.size()));
+
+    ui->statusBar->showMessage(content);
+}
+
 /// showRandomSpline - generate random control points and show them.
 void MainWindow::showRandomSpline() {
     scene->clear();
@@ -135,30 +207,50 @@ void MainWindow::updateView(QPointF *skipPoint)
     t.start();
     interpolateCurve();
 
+    // Show easy interpolated curve.
+    for (QPolygonF::iterator pointIt = easyBezierInterpolatedPoints.begin(),
+         pointEnd = easyBezierInterpolatedPoints.end(); pointIt != pointEnd; ++pointIt) {
+
+        if (displaySettings.showEasyBezierLine &&
+            pointIt != easyBezierInterpolatedPoints.end() - 1) {
+            scene->addLine(QLineF(*pointIt, *(pointIt + 1)), QPen("red"));
+        }
+
+        if (displaySettings.showEasyBezierInterpolatedPoints) {
+            scene->addEllipse(pointIt->x() - 2, pointIt->y() - 2, 4, 4, QPen("black"),
+                              QBrush("red"));
+        }
+    }
+
     // Show interpolated curve.
     for (QPolygonF::iterator pointIt = interpolatedPoints.begin(),
          pointEnd = interpolatedPoints.end(); pointIt != pointEnd; ++pointIt) {
-        if (pointIt != interpolatedPoints.end() - 1)
-            scene->addLine(QLineF(*pointIt, *(pointIt + 1)), QPen("black"));
-        if (displaySettings.showInterpolatedPoints)
+
+        if (displaySettings.showBezierLine &&
+            pointIt != interpolatedPoints.end() - 1) {
+                scene->addLine(QLineF(*pointIt, *(pointIt + 1)), QPen("black"));
+        }
+
+        if (displaySettings.showInterpolatedPoints) {
             scene->addEllipse(pointIt->x() - 2, pointIt->y() - 2, 4, 4, QPen("black"),
                               QBrush("black"));
+        }
     }
+
     // Show control points.
     for (QVector<QPointF*>::iterator pointIt = controlPoints.begin(),
          pointEnd = controlPoints.end(); pointIt != pointEnd; ++pointIt) {
-        if (displaySettings.showControlLines && pointIt != controlPoints.end() - 1)
+
+        if (displaySettings.showControlLines && pointIt != controlPoints.end() - 1) {
             scene->addLine(QLineF(**pointIt, **(pointIt + 1)), QPen("blue"));
+        }
+
         if ((skipPoint && skipPoint == *pointIt) ||
                 !displaySettings.showControlPoints) {
             continue;
         }
-        // On Android control points must be larger for moving them with fingers.
-#ifdef Q_OS_ANDROID
-        const int controlPointSize = 50;
-#else
-        const int controlPointSize = 10;
-#endif
+
+        const int controlPointSize = displaySettings.controlPointSize;
         MovingEllipseItem *pointItem = new MovingEllipseItem(
                     (*pointIt)->x() - controlPointSize / 2,
                     (*pointIt)->y() - controlPointSize / 2,
@@ -166,6 +258,7 @@ void MainWindow::updateView(QPointF *skipPoint)
         itemToPoint[pointItem] = *pointIt;
         pointItem->setBrush(QBrush("blue"));
         pointItem->setFlag(QGraphicsItem::ItemIsMovable, true);
+        pointItem->update();
         scene->addItem(pointItem);
     }
     // Show boor net points.
@@ -181,7 +274,7 @@ void MainWindow::updateView(QPointF *skipPoint)
     showKnotVector();
     showControlPoints();
 
-    ui->InterpolatedPointsLabel->setText(QString::number(interpolatedPoints.size()));
+    updateStatusBar();
     ++framesNumber;
 }
 
@@ -278,7 +371,7 @@ void MainWindow::on_AddPointButton_clicked()
     addControlPoint();
     fillKnotVector();
     scene->clear();
-    ui->ControlPointsLabel->setText(QString::number(pointsNumber));
+    updateStatusBar();
     updateView();
 }
 
@@ -296,14 +389,14 @@ void MainWindow::on_DelPointButton_clicked()
         controlPointsSpeed.pop_back();
     fillKnotVector();
     scene->clear();
-    ui->ControlPointsLabel->setText(QString::number(pointsNumber));
+    updateStatusBar();
     updateView();
 }
 
 /// updateFPS - show FPS in gui.
 void MainWindow::updateFPS()
 {
-    ui->fpsLabel_2->setText(QString::number(framesNumber));
+    updateStatusBar();
     framesNumber = 0;
 }
 
@@ -377,4 +470,19 @@ void MainWindow::on_horizontalSlider_sliderMoved(int position)
 void MainWindow::on_horizontalSlider_valueChanged(int value)
 {
     on_horizontalSlider_sliderMoved(value);
+}
+
+void MainWindow::on_controlPtSlider_sliderMoved(int position)
+{
+    on_controlPtSlider_valueChanged(position);
+}
+
+void MainWindow::on_controlPtSlider_valueChanged(int position)
+{
+    QString prefix = "Control Pointsize: ";
+    ui->controlPtSizeLabel->setText(prefix + QString::number(position));
+    displaySettings.controlPointSize = position;
+
+    scene->clear();
+    updateView();
 }
