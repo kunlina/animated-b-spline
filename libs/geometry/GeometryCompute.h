@@ -116,6 +116,7 @@ public:
     };
 
     void setTolerance(double tolerance) { mDistanceTolerance = tolerance*tolerance; }
+    double getTolerance() { return mDistanceTolerance;}
 
     int InterpolateBezier(ControlPoints ControlPts, PointArray &PtOut);
 

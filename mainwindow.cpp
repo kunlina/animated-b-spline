@@ -3,6 +3,12 @@
 #include "movingellipseitem.h"
 #include <QTime>
 
+#include <QMenu>
+#include <QAction>
+#include <QSystemTrayIcon>
+#include <QCloseEvent>
+#include <QMessageBox>
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -25,6 +31,13 @@ MainWindow::MainWindow(QWidget *parent)
     ui->graphicsView->setScene(scene);
     showRandomSpline();
 
+    // systemtray icon
+    createActions();
+    createTrayIcon();
+    trayIcon->show();
+
+    ui->torence->setValue(easybezierInterpolator.getTolerance());
+    ui->controlPtSlider->setValue(displaySettings.controlPointSize);
     updateStatusBar();
 }
 
@@ -183,15 +196,15 @@ void MainWindow::updateStatusBar()
 }
 
 /// showRandomSpline - generate random control points and show them.
-void MainWindow::showRandomSpline() {
-    scene->clear();
+void MainWindow::showRandomSpline()
+{
     clearPoints();
 
     for (int counter = 0; counter < pointsNumber; ++counter) {
         addControlPoint();
     }
 
-    updateView();
+    clearSceneAndUpdateView();
 }
 
 void MainWindow::on_startStopButton_clicked()
@@ -281,36 +294,47 @@ void MainWindow::updateView(QPointF *skipPoint)
 void MainWindow::on_checkBox_stateChanged(int arg1)
 {
     displaySettings.showInterpolatedPoints = arg1;
-    scene->clear();
-    updateView();
+    clearSceneAndUpdateView();
 }
 
 void MainWindow::on_checkBox_2_stateChanged(int arg1)
 {
     displaySettings.showControlPoints = arg1;
-    scene->clear();
-    updateView();
+    clearSceneAndUpdateView();
 }
 
 void MainWindow::on_checkBox_3_stateChanged(int arg1)
 {
     displaySettings.showBoorPoints = arg1;
-    scene->clear();
-    updateView();
+    clearSceneAndUpdateView();
 }
 
 void MainWindow::on_checkBox_4_stateChanged(int arg1)
 {
     displaySettings.showControlLines = arg1;
-    scene->clear();
-    updateView();
+    clearSceneAndUpdateView();
 }
 
 void MainWindow::on_checkBox_5_stateChanged(int arg1)
 {
     displaySettings.showBoorLines = arg1;
-    scene->clear();
-    updateView();
+    clearSceneAndUpdateView();
+}
+
+void MainWindow::on_torence_valueChanged(double value)
+{
+    easybezierInterpolator.setTolerance(value);
+    clearSceneAndUpdateView();
+}
+
+void MainWindow::on_zoomInBtn_clicked()
+{
+    ui->graphicsView->scale(1.2, 1.2);
+}
+
+void MainWindow::on_zoomOutBtn_clicked()
+{
+    ui->graphicsView->scale(1/1.2, 1/1.2);
 }
 
 /// moveCurve - moves control points according to its speed and updates view.
@@ -350,8 +374,7 @@ void MainWindow::moveCurve()
         }
     }
 
-    scene->clear();
-    updateView();
+    clearSceneAndUpdateView();
 }
 
 void MainWindow::on_RandomButton_clicked()
@@ -370,9 +393,8 @@ void MainWindow::on_AddPointButton_clicked()
     ++pointsNumber;
     addControlPoint();
     fillKnotVector();
-    scene->clear();
     updateStatusBar();
-    updateView();
+    clearSceneAndUpdateView();
 }
 
 void MainWindow::on_DelPointButton_clicked()
@@ -388,9 +410,8 @@ void MainWindow::on_DelPointButton_clicked()
     if (!controlPointsSpeed.empty())
         controlPointsSpeed.pop_back();
     fillKnotVector();
-    scene->clear();
     updateStatusBar();
-    updateView();
+    clearSceneAndUpdateView();
 }
 
 /// updateFPS - show FPS in gui.
@@ -398,6 +419,12 @@ void MainWindow::updateFPS()
 {
     updateStatusBar();
     framesNumber = 0;
+}
+
+void MainWindow::clearSceneAndUpdateView()
+{
+    scene->clear();
+    updateView();
 }
 
 void MainWindow::on_AntialiasingSlider_sliderMoved(int position)
@@ -463,8 +490,7 @@ void MainWindow::on_horizontalSlider_sliderMoved(int position)
 
     ui->QualityLabel->setText(prefix + postfix);
 
-    scene->clear();
-    updateView();
+     clearSceneAndUpdateView();
 }
 
 void MainWindow::on_horizontalSlider_valueChanged(int value)
@@ -483,6 +509,49 @@ void MainWindow::on_controlPtSlider_valueChanged(int position)
     ui->controlPtSizeLabel->setText(prefix + QString::number(position));
     displaySettings.controlPointSize = position;
 
-    scene->clear();
-    updateView();
+    clearSceneAndUpdateView();
+}
+
+void MainWindow::createActions()
+{
+    restoreAction = new QAction(tr("&Restore"), this);
+    connect(restoreAction, &QAction::triggered, this, &MainWindow::showNormal);
+
+    quitAction = new QAction(tr("&Quit"), this);
+    connect(quitAction, &QAction::triggered, qApp, &QCoreApplication::quit);
+}
+
+void MainWindow::createTrayIcon()
+{
+    trayIconMenu = new QMenu(this);
+    trayIconMenu->addAction(restoreAction);
+    trayIconMenu->addSeparator();
+    trayIconMenu->addAction(quitAction);
+
+    trayIcon = new QSystemTrayIcon(this);
+    trayIcon->setIcon(QIcon(":/icon/res/icon/typora.png"));
+    trayIcon->setContextMenu(trayIconMenu);
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+#ifdef Q_OS_OSX
+    if (!event->spontaneous() || !isVisible()) {
+        return;
+    }
+#endif
+    if (trayIcon->isVisible()) {
+        QMessageBox::StandardButton but =
+                QMessageBox::question(this,
+                                      tr("Quit or Hidden"),
+                                      tr("To terminate the program, choose Yes, "
+                                         "or The program will keep running in the system tray,"
+                                         "and click the system tray to restore or quit." ));
+        if (but == QMessageBox::Yes) {
+            qApp->quit();
+        } else {
+            hide();
+            event->ignore();
+        }
+    }
 }

@@ -11,7 +11,7 @@ class MovingEllipseItem : public QGraphicsEllipseItem {
 public:
   MovingEllipseItem(qreal x, qreal y, qreal width, qreal height,
                     MainWindow *mainWindow, QGraphicsItem *parent = 0);
-  
+
 private:
   MainWindow *mainWindow;
 

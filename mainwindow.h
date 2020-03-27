@@ -9,6 +9,7 @@
 #include "geometry/GeometryCompute.h"
 
 class MovingEllipseItem;
+class QSystemTrayIcon;
 
 namespace Ui {
 class MainWindow;
@@ -29,6 +30,10 @@ private slots:
   void on_checkBox_4_stateChanged(int arg1);
   void on_checkBox_5_stateChanged(int arg1);
 
+  void on_torence_valueChanged(double value);
+  void on_zoomInBtn_clicked();
+  void on_zoomOutBtn_clicked();
+
   void on_startStopButton_clicked();
   void on_RandomButton_clicked();
   void on_AddPointButton_clicked();
@@ -40,9 +45,9 @@ private slots:
   void on_SpeedSlider_valueChanged(int value);
   void on_horizontalSlider_sliderMoved(int position);
   void on_horizontalSlider_valueChanged(int value);
+
   void on_controlPtSlider_sliderMoved(int position);
   void on_controlPtSlider_valueChanged(int position);
-
 
   void updateView(QPointF *skipPoint = 0);
 
@@ -50,8 +55,8 @@ private slots:
 
   void updateFPS();
 
-
 private:
+  void clearSceneAndUpdateView();
   // Crunch. After moving of control point scene must be rerendered and I am too
   // lazy to create public function for it.
   friend class MovingEllipseItem;
@@ -124,6 +129,15 @@ private:
     bool showEasyBezierInterpolatedPoints;
     int controlPointSize;
   } displaySettings;
+
+    QAction *restoreAction;
+    QAction *quitAction;
+
+    QSystemTrayIcon *trayIcon;
+    QMenu *trayIconMenu;
+    void createTrayIcon();
+    void createActions();
+    void closeEvent(QCloseEvent *event);
 };
 
 #endif // MAINWINDOW_H
