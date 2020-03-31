@@ -55,8 +55,12 @@ private slots:
 
   void updateFPS();
 
+  void about();
+  void show3DScene();
+  void show2DScene();
 private:
   void clearSceneAndUpdateView();
+  void createSystemTrayActions();
   // Crunch. After moving of control point scene must be rerendered and I am too
   // lazy to create public function for it.
   friend class MovingEllipseItem;
@@ -138,6 +142,8 @@ private:
     void createTrayIcon();
     void createActions();
     void closeEvent(QCloseEvent *event);
+    void createMenus();
+    void createToolBars();
 };
 
 #endif // MAINWINDOW_H

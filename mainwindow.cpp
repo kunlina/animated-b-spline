@@ -8,6 +8,7 @@
 #include <QSystemTrayIcon>
 #include <QCloseEvent>
 #include <QMessageBox>
+#include <qwt3d/qwt3d_curveplot.h>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -16,29 +17,42 @@ MainWindow::MainWindow(QWidget *parent)
     , speedMultiplicator(1.0)
     , pointsNumber(4)
 {
-    ui->setupUi(this);
+    // init property
     displaySettings.showInterpolatedPoints = true;
-
     fillKnotVector();
 
+    // creat ui.
+    ui->setupUi(this);
+    scene = new QGraphicsScene();
+    ui->graphicsView->setScene(scene);
+
+    delete ui->scene3D;
+    Qwt3D::CurvePlot *plotWidet = new Qwt3D::CurvePlot(this);
+    plotWidet->createDataset();
+    ui->scene3D = plotWidet;
+    ui->showCenter->addWidget(ui->scene3D);
+
+    createMenus();
+    createToolBars();
+    createActions();
+
+    // systemtray icon
+    createSystemTrayActions();
+    createTrayIcon();
+    trayIcon->show();
+
+    // init ui
+    showRandomSpline();
+    ui->torence->setValue(easybezierInterpolator.getTolerance());
+    ui->controlPtSlider->setValue(displaySettings.controlPointSize);
+    updateStatusBar();
+
+    // other
     animationTimer = new QTimer();
     connect(animationTimer, SIGNAL(timeout()), SLOT(moveCurve()));
 
     fpsTimer = new QTimer();
     connect(fpsTimer, SIGNAL(timeout()), SLOT(updateFPS()));
-
-    scene = new QGraphicsScene();
-    ui->graphicsView->setScene(scene);
-    showRandomSpline();
-
-    // systemtray icon
-    createActions();
-    createTrayIcon();
-    trayIcon->show();
-
-    ui->torence->setValue(easybezierInterpolator.getTolerance());
-    ui->controlPtSlider->setValue(displaySettings.controlPointSize);
-    updateStatusBar();
 }
 
 MainWindow::~MainWindow()
@@ -48,6 +62,48 @@ MainWindow::~MainWindow()
     delete fpsTimer;
     delete scene;
     clearPoints();
+}
+
+void MainWindow::createMenus(void)
+{
+}
+
+void MainWindow::createToolBars(void)
+{
+
+}
+
+void MainWindow::show3DScene()
+{
+    ui->showCenter->setCurrentWidget(ui->scene3D);
+}
+
+void MainWindow::show2DScene()
+{
+    ui->showCenter->setCurrentWidget(ui->scene2D);
+}
+
+void MainWindow::about()
+{
+    static const char message[] =
+            "<p><b>Qt Main Window Example</b></p>"
+
+            "<p>This is a demonstration of the QMainWindow, QToolBar and "
+            "QDockWidget classes.</p>"
+
+            "<p>The tool bar and dock widgets can be dragged around and rearranged "
+            "using the mouse or via the menu.</p>"
+
+            "<p>Each dock widget contains a colored frame and a context "
+            "(right-click) menu.</p>"
+
+        #ifdef Q_OS_MAC
+            "<p>On OS X, the \"Black\" dock widget has been created as a "
+            "<em>Drawer</em>, which is a special kind of QDockWidget.</p>"
+        #endif
+            ;
+
+    QMessageBox::about(this, tr("About MainWindows"), message);
 }
 
 /// fillKnotVector - fill \var knotVector with knots for uniform cubic B-spline
@@ -512,13 +568,21 @@ void MainWindow::on_controlPtSlider_valueChanged(int position)
     clearSceneAndUpdateView();
 }
 
-void MainWindow::createActions()
+void MainWindow::createSystemTrayActions()
 {
     restoreAction = new QAction(tr("&Restore"), this);
     connect(restoreAction, &QAction::triggered, this, &MainWindow::showNormal);
 
     quitAction = new QAction(tr("&Quit"), this);
     connect(quitAction, &QAction::triggered, qApp, &QCoreApplication::quit);
+}
+
+void MainWindow::createActions()
+{
+    connect(ui->actionExit, &QAction::triggered, qApp, &QApplication::quit);
+    connect(ui->actionAbout, &QAction::triggered, this, &MainWindow::about);
+    connect(ui->action2D, &QAction::triggered, this, &MainWindow::show2DScene);
+    connect(ui->action3D, &QAction::triggered, this, &MainWindow::show3DScene);
 }
 
 void MainWindow::createTrayIcon()

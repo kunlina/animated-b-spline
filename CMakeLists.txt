@@ -46,6 +46,8 @@ add_executable(BezierCurve
 
 target_link_libraries(BezierCurve bezier)
 target_link_libraries(BezierCurve geometry)
+target_link_libraries(BezierCurve qwtplot3d)
+target_link_libraries(BezierCurve GLU)
 target_link_libraries(BezierCurve Qt5::Core)
 target_link_libraries(BezierCurve Qt5::Widgets)
 target_link_libraries(BezierCurve Qt5::Gui)
