@@ -84,18 +84,20 @@ struct Point {
     static double DistanceToLine(const Point &Pt, const Point &P1, const Point &P2);
 };
 
+/* 输出的小线段 */
 struct PointArray {
-    int usedIndex; // 已经使用的最后一个数的索引
-    int totalNum; // points空间的总长度
+    int validIndex;         // 已经使用的最后一个数的索引
+    int totalNum;           // points空间的总长度
     Point *points;
 
 public:
     void AddPoint(Point &Point);
 };
 
+/* 控制点 */
 struct ControlPoints {
-    int degree; // 次数
-    Point *points; // 控制点数组
+    int degree;             // 次数
+    Point *points;          // 控制点数组
 };
 
 class GeometryCompute
@@ -104,25 +106,30 @@ public:
     GeometryCompute();
     enum {
         MAX_DIMENSION = 4,
+        MAX_DEGREE = 32,
+        MIN_DEGREE = 2,
     };
 
     enum ERRCODE {
-        SUCCESS = 0, ///< 操作成功
-        DIM_INVALID, ///< 维度无效
-        PARA_INVALID, ///< 参数无效
-        RECURSIVE_OVERFLOW, ///< 递归溢出
-        DEGREE_INVALID, ///< 次数无效
-        NOT_ENOUGH_MEMERY, ///< 内存不足
+        SUCCESS = 0,        // 操作成功
+        DIM_INVALID,        // 维度无效
+        PARA_INVALID,       // 参数无效
+        RECURSIVE_OVERFLOW, // 递归溢出
+        DEGREE_INVALID,     // 次数无效
+        DEGREE_TOO_HIGH,    // 次数大于 MAX_DEGREE
+        DEGREE_TOO_LOW,     // 次数小于 MIN_DEGREE
+        NOT_ENOUGH_MEMERY,  // 内存不足
     };
 
-    void setTolerance(double tolerance) { mDistanceTolerance = tolerance*tolerance; }
-    double getTolerance() { return mDistanceTolerance;}
+    void SetTolerance(double tolerance) { mDistanceTolerance = tolerance*tolerance; }
+    double GetTolerance() { return mDistanceTolerance; }
+
+    int DecomposeCurve(int n, int p, const double *U, const Point *Pw, int &nb, Point *Qw);
+    int InterplateNurbsCurve(int KnotCount, float *Knots, float *Control, int Stride, int Order, int type);
 
     int InterpolateBezier(ControlPoints ControlPts, PointArray &PtOut);
-
     int InterpolateBezier(double BezierControlPts[], int Degree, int Dim,
                           double PtOut[], int Size, int *UsedSize);
-
 private:
     int Recursive2DegreeBezier(double Pt1[], double Pt2[], double Pt3[], int Level);
     int Recursive3DegreeBezier(double Pt1[], double Pt2[], double Pt3[], double Pt4[],

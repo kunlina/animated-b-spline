@@ -9,13 +9,14 @@
 #include <QCloseEvent>
 #include <QMessageBox>
 #include <qwt3d/qwt3d_curveplot.h>
+#include <QDebug>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
     , framesNumber(0)
     , speedMultiplicator(1.0)
-    , pointsNumber(4)
+    , pointsNumber(5)
 {
     // init property
     displaySettings.showInterpolatedPoints = true;
@@ -43,7 +44,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     // init ui
     showRandomSpline();
-    ui->torence->setValue(easybezierInterpolator.getTolerance());
+    ui->torence->setValue(easybezierInterpolator.GetTolerance());
     ui->controlPtSlider->setValue(displaySettings.controlPointSize);
     updateStatusBar();
 
@@ -135,14 +136,44 @@ void MainWindow::showKnotVector()
 /// break curve into multiple Bezier curves and interpolate each Bezier curve.
 void MainWindow::interpolateCurve()
 {
+    const int n = controlPoints.size() - 1;
+    const int degree = 3;
+
+    const double *knots = knotVector.constData();
+
+    Point cps[100];
+    for (int i = 0; i < controlPoints.size(); ++i) {
+        cps[i].x = controlPoints.at(i)->x();
+        cps[i].y = controlPoints.at(i)->y();
+    }
+
+//    bezierInterpolator.CalculateBoorNet(controlPoints, knotVector, boorNetPoints);
+    int segnum = 0;
+    Point bezierCPs[100 * (degree+1)];
+    int ret = easybezierInterpolator.DecomposeCurve(n, degree, knots, cps, segnum, bezierCPs);
+    if (ret != GeometryCompute::SUCCESS)  {
+        qWarning("error!");
+        return;
+    }
+
+    boorNetPoints.clear();
+    for (int i = 0; i < segnum; ++i) {
+        int num = degree + 1;
+        for (int j = 0; j < num; ++j) {
+            QPointF pt;
+            pt.setX(bezierCPs[num*i + j].x);
+            pt.setY(bezierCPs[num*i + j].y);
+            boorNetPoints.append(pt);
+        }
+    }
+
     interpolatedPoints.clear();
-    bezierInterpolator.CalculateBoorNet(controlPoints, knotVector, boorNetPoints);
     interpolatedPoints.push_back(*(controlPoints.first()));
 
     easyBezierInterpolatedPoints.clear();
     easyBezierInterpolatedPoints.append(*(controlPoints.first()));
 
-    for (int counter = 0; counter < boorNetPoints.size() - 3; counter += 3) {
+    for (int counter = 0; counter < boorNetPoints.size() - 3; counter += 4) {
         bezierInterpolator.InterpolateBezier(boorNetPoints[counter],
                                              boorNetPoints[counter + 1],
                                              boorNetPoints[counter + 2],
@@ -161,7 +192,7 @@ void MainWindow::interpolateCurve()
         cpts.degree = 3;
 
         PointArray ptout;
-        ptout.usedIndex = 0;
+        ptout.validIndex = 0;
         ptout.totalNum = 1000;
         ptout.points = (Point *)malloc(ptout.totalNum * sizeof(Point));
 
@@ -171,7 +202,7 @@ void MainWindow::interpolateCurve()
         }
 
         QPointF tmp;
-        for (int i = 0; i < ptout.usedIndex; ++i) {
+        for (int i = 0; i < ptout.validIndex; ++i) {
             tmp.setX(ptout.points[i].x);
             tmp.setY(ptout.points[i].y);
             easyBezierInterpolatedPoints.push_back(tmp);
@@ -379,7 +410,7 @@ void MainWindow::on_checkBox_5_stateChanged(int arg1)
 
 void MainWindow::on_torence_valueChanged(double value)
 {
-    easybezierInterpolator.setTolerance(value);
+    easybezierInterpolator.SetTolerance(value);
     clearSceneAndUpdateView();
 }
 

@@ -2,10 +2,10 @@
 
 void PointArray::AddPoint(Point &Point)
 {
-    if (usedIndex < totalNum - 1)
+    if (validIndex < totalNum - 1)
     {
-        points[usedIndex] = Point;
-        usedIndex++;
+        points[validIndex] = Point;
+        validIndex++;
     }
 }
 
@@ -48,31 +48,51 @@ GeometryCompute::GeometryCompute()
 
 }
 
+/**
+ * @brief GeometryCompute::InterplateNurbsCurve
+ * @param KnotCount Specifies the number of knots in knots. knotCount equals the number of control points plus the order.
+ * @param Knots Specifies an array of knotCount nondecreasing knot values.
+ * @param Control Specifies a pointer to an array of control points. The coordinates must agree with type.
+ * @param Stride Specifies the offset (as a number of single-precision floating-point values) between successive curve control points.
+ * @param Order Specifies the order of the NURBS curve. order equals degree + 1, hence a cubic curve has an order of 4.
+ * @param type Specifies the type of the curve.
+ * @return
+ */
+int GeometryCompute::InterplateNurbsCurve(int KnotCount, float *Knots, float *Control, int Stride, int Order, int type)
+{
+    int Ret = SUCCESS;
+
+
+
+
+    return Ret;
+}
+
 int GeometryCompute::InterpolateBezier(ControlPoints ControlPts, PointArray &PtOut)
 {
-    int ret = SUCCESS;
+    int Ret = SUCCESS;
 
-    PtOut.usedIndex = 0;
+    PtOut.validIndex = 0;
     PtOut.AddPoint(ControlPts.points[0]);
 
     if (ControlPts.degree == 2)
     {
-        ret = Recursive2DegreeBezier(ControlPts.points[0], ControlPts.points[2], ControlPts.points[4], 0, PtOut);
+        Ret = Recursive2DegreeBezier(ControlPts.points[0], ControlPts.points[2], ControlPts.points[4], 0, PtOut);
     }
     else if (ControlPts.degree == 3)
     {
-        ret = Recursive3DegreeBezier(ControlPts.points[0], ControlPts.points[1], ControlPts.points[2], ControlPts.points[3],
+        Ret = Recursive3DegreeBezier(ControlPts.points[0], ControlPts.points[1], ControlPts.points[2], ControlPts.points[3],
                 0, PtOut);
     } else {
         return DEGREE_INVALID;
     }
 
-    if (ret == SUCCESS)
+    if (Ret == SUCCESS)
     {
         PtOut.AddPoint(ControlPts.points[ControlPts.degree]);
     }
 
-    return ret;
+    return Ret;
 }
 
 /**
@@ -131,7 +151,7 @@ int GeometryCompute::DistanceToLine(const double Pt[], const double P1[], const 
 int GeometryCompute::InterpolateBezier(double BezierControlPts[], int Degree, int Dim,
                                        double PtOut[], int Size, int *UsedSize)
 {
-    int ret = SUCCESS;
+    int Ret = SUCCESS;
     mPtMem = PtOut;
     mPtTotalSize = Size;
     mPtIndex = 0;
@@ -139,28 +159,28 @@ int GeometryCompute::InterpolateBezier(double BezierControlPts[], int Degree, in
         return DEGREE_INVALID;
     }
 
-    ret = AddPoint(&BezierControlPts[0], Dim);
-    if (ret != SUCCESS)
+    Ret = AddPoint(&BezierControlPts[0], Dim);
+    if (Ret != SUCCESS)
     {
         return NOT_ENOUGH_MEMERY;
     }
 
     if (Degree == 2)
     {
-        ret = Recursive2DegreeBezier(&BezierControlPts[0], &BezierControlPts[2], &BezierControlPts[4], 0);
+        Ret = Recursive2DegreeBezier(&BezierControlPts[0], &BezierControlPts[2], &BezierControlPts[4], 0);
     }
     else
     {
-        ret = Recursive3DegreeBezier(&BezierControlPts[0*Dim], &BezierControlPts[1*Dim], &BezierControlPts[2*Dim], &BezierControlPts[3*Dim], Dim, 0);
+        Ret = Recursive3DegreeBezier(&BezierControlPts[0*Dim], &BezierControlPts[1*Dim], &BezierControlPts[2*Dim], &BezierControlPts[3*Dim], Dim, 0);
     }
 
-    if (ret != SUCCESS)
+    if (Ret != SUCCESS)
     {
-        return ret;
+        return Ret;
     }
 
-    ret = AddPoint(&BezierControlPts[Degree*Dim], Dim);
-    if (ret != SUCCESS)
+    Ret = AddPoint(&BezierControlPts[Degree*Dim], Dim);
+    if (Ret != SUCCESS)
     {
         return NOT_ENOUGH_MEMERY;
     }
@@ -169,6 +189,170 @@ int GeometryCompute::InterpolateBezier(double BezierControlPts[], int Degree, in
 
     return SUCCESS;
 }
+
+/*!
+ * \brief DecomposeCurve
+ * 功能: 将Nurbs曲线分为bezier曲线段.
+ * 算法源自 The Nurbs Book A5.6.
+ * \param n 控制点数-1
+ * \param p 次数
+ * \param U 节点数组 [U0, U1, ... ... Un]
+ * \param Pw 控制点数组
+ * \param nb 输出，bezier段数
+ * \param Qw 输出, Qw[j][k]返回第j段第k个控制点
+ * \return
+ */
+int GeometryCompute::DecomposeCurve(int n, int p, const double *U, const Point *Pw,
+                                    int &nb, Point *Qw)
+{
+    const int m = n + p + 1;    /* 节点数 */
+    const int num = p + 1;      /*       */
+    int a = p;         /* 节点Ua在重复组中(重复度p)最右端出现时的下标. */
+    int b = p + 1;     /* 节点Ub在紧随Ua之后，重复组中最右端的下标(重复度还不到p). */
+
+    nb = 0;
+
+    for (int i = 0; i <= p; ++i) {
+        Qw[nb*num + i] = Pw[i];
+    }
+
+    while (b < m) {
+        int i = b;
+        while (b < m && U[b+1] == U[b]) {
+            b++;
+        }
+        int mult = b - i + 1;           /* 找出重复度, 如果只有一个则重复度为 1 */
+
+        if (mult < p) {
+            double number = U[b] - U[a];   /* 分子都相等 */
+
+            /* 计算并存储 alphas */
+            double alphas[100] = {0.0};
+            for (int j = p; j > mult; --j) {
+                alphas[j - mult -1] = number / (U[a + j] - U[a]); /* 东南对角线上，各alpha相等 */
+            }
+
+            int r = p - mult;               /* 插入节点的次数 */
+            for (int j = 1; j <= r; ++j) {  /* 执行 r 次插入 */
+                int s = mult + j;           /* s个新控制点 */
+                for (int k = p; k >= s; --k) {
+                    double alpha = alphas[k - s];
+                    Qw[nb*num + k] = alpha * Qw[nb*num + k] + (1 - alpha) * Qw[nb*num + k - 1];
+                }
+
+                if (b < m) {                /* 下一段的控制点 */
+                    int save = r - j;
+                    Qw[(nb+1)*num + save] = Qw[nb*num + p];
+                }
+            }
+        }
+
+        /* 重复度为p，说明当前bezier段处理完毕 */
+        nb = nb + 1;         /* 更新bezier段数 */
+        if (b < m) {           /* 为下一段进行初始化 */
+            for (int i = p - mult; i <= p; ++i) {
+                Qw[nb*num + i] = Pw[b - p + i];
+            }
+
+            a = b;
+            b++;
+        }
+    }
+
+    return SUCCESS;
+}
+
+#if 0
+/*!
+ * \brief GeometryCompute::CalculateBoorNet
+ *  CalculateBoorNet - inserts new control points with de Boor algorithm for
+ *  transformation of B-spline into composite Bezier curve.
+ * \param controlPoints
+ * \param knotVector
+ * \param boorNetPoints
+ */
+void GeometryCompute::CalculateBoorNet(const <QPointF *> &controlPoints,
+                                       const QVector<qreal> &knotVector,
+                                       QPolygonF &boorNetPoints) const
+{
+    Q_ASSERT(controlPoints.size() > 2);
+    Q_ASSERT(knotVector.size() > 4);
+    // We draw uniform cubic B-spline that passes through endpoints, so we assume
+    // that multiplicity of first and last knot is 4 and 1 for knots between.
+
+    QVector<qreal> newKnotVector = knotVector;
+    boorNetPoints.clear();
+    for (int i = 0; i < controlPoints.size(); ++i)
+    {
+        boorNetPoints.push_back(*controlPoints[i]);
+    }
+
+    // Insert every middle knot 2 times to increase its multiplicity from 1 to 3.
+    const int curveDegree = 3; // 次数
+    const int increaseMultiplicity = 2; // 重复度
+
+    for (int knotCounter = 4; knotCounter < newKnotVector.size() - 4; knotCounter += 3)
+    {
+        QHash< int, QHash<int, QPointF> > tempPoints;
+
+        for (int i = knotCounter - curveDegree; i <= knotCounter; ++i)
+        {
+            tempPoints[i][0] = boorNetPoints[i];
+        }
+
+        for (int insertCounter = 1; insertCounter <= increaseMultiplicity; ++insertCounter)
+        {
+            for (int i = knotCounter - curveDegree + insertCounter; i < knotCounter; ++i)
+            {
+                double coeff = (newKnotVector[knotCounter] - newKnotVector[i]) /
+                        (newKnotVector[i + curveDegree - insertCounter + 1] - newKnotVector[i]);
+                QPointF newPoint = (1.0 - coeff) * tempPoints[i - 1][insertCounter - 1] +
+                        coeff * tempPoints[i][insertCounter - 1];
+                tempPoints[i][insertCounter] = newPoint;
+            }
+        }
+
+        for (int i = 0; i < increaseMultiplicity; ++i)
+        {
+            newKnotVector.insert(knotCounter, newKnotVector[knotCounter]);
+        }
+
+        // Fill new control points.
+        QPolygonF newBoorNetPoints;
+        for (int i = 0; i <= knotCounter - curveDegree; ++i)
+        {
+            newBoorNetPoints.push_back(boorNetPoints[i]);
+        }
+
+        for (int i = 1; i <= increaseMultiplicity; ++i)
+        {
+            QPointF &newP = tempPoints[knotCounter - curveDegree + i][i];
+            newBoorNetPoints.push_back(newP);
+        }
+
+        for (int i = -curveDegree + increaseMultiplicity + 1; i <= -1; ++i)
+        {
+            QPointF &newP = tempPoints[knotCounter + i][increaseMultiplicity];
+            newBoorNetPoints.push_back(newP);
+        }
+
+        for (int i = increaseMultiplicity - 1; i >= 1; --i)
+        {
+            newBoorNetPoints.push_back(tempPoints[knotCounter - 1][i]);
+        }
+
+        for (int i = knotCounter - 1; i < boorNetPoints.size(); ++i)
+        {
+            newBoorNetPoints.push_back(boorNetPoints[i]);
+        }
+
+        boorNetPoints = newBoorNetPoints;
+    }
+
+    qWarning() << newKnotVector;
+}
+#endif
+
 
 int GeometryCompute::Recursive2DegreeBezier(double Pt1[3], double Pt2[3], double Pt3[3], int Level)
 {
@@ -190,7 +374,7 @@ int GeometryCompute::Recursive3DegreeBezier(double Pt1[],
                                             int Dim,
                                             int Level)
 {
-    int ret = SUCCESS;
+    int Ret = SUCCESS;
     double Pt12[MAX_DIMENSION] = {0.0};
     double Pt23[MAX_DIMENSION] = {0.0};
     double Pt34[MAX_DIMENSION] = {0.0};
@@ -226,16 +410,16 @@ int GeometryCompute::Recursive3DegreeBezier(double Pt1[],
     }
 
     // Continue subdivision
-    ret = Recursive3DegreeBezier(Pt1, Pt12, Pt123, Pt1234, Dim, Level+1);
-    if (ret != SUCCESS)
+    Ret = Recursive3DegreeBezier(Pt1, Pt12, Pt123, Pt1234, Dim, Level+1);
+    if (Ret != SUCCESS)
     {
-        return ret;
+        return Ret;
     }
 
-    ret = Recursive3DegreeBezier(Pt1234, Pt234, Pt34, Pt4, Dim, Level+1);
-    if (ret != SUCCESS)
+    Ret = Recursive3DegreeBezier(Pt1234, Pt234, Pt34, Pt4, Dim, Level+1);
+    if (Ret != SUCCESS)
     {
-        return ret;
+        return Ret;
     }
 
     return SUCCESS;
@@ -248,7 +432,7 @@ int GeometryCompute::Recursive2DegreeBezier(Point Pt1, Point Pt2, Point Pt3, int
 
 int GeometryCompute::Recursive3DegreeBezier(Point Pt1, Point Pt2, Point Pt3, Point Pt4, int Level, PointArray &PtOut)
 {
-    int ret = SUCCESS;
+    int Ret = SUCCESS;
     Point Pt12, Pt23, Pt34;
     Point Pt123, Pt234;
     Point Pt1234;
@@ -284,16 +468,16 @@ int GeometryCompute::Recursive3DegreeBezier(Point Pt1, Point Pt2, Point Pt3, Poi
     }
 
     // Continue subdivision
-    ret = Recursive3DegreeBezier(Pt1, Pt12, Pt123, Pt1234, Level+1, PtOut);
-    if (ret != SUCCESS)
+    Ret = Recursive3DegreeBezier(Pt1, Pt12, Pt123, Pt1234, Level+1, PtOut);
+    if (Ret != SUCCESS)
     {
-        return ret;
+        return Ret;
     }
 
-    ret = Recursive3DegreeBezier(Pt1234, Pt234, Pt34, Pt4, Level+1, PtOut);
-    if (ret != SUCCESS)
+    Ret = Recursive3DegreeBezier(Pt1234, Pt234, Pt34, Pt4, Level+1, PtOut);
+    if (Ret != SUCCESS)
     {
-        return ret;
+        return Ret;
     }
 
     return SUCCESS;
