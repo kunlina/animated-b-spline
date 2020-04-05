@@ -91,7 +91,7 @@ struct PointArray {
     Point *points;
 
 public:
-    void AddPoint(Point &Point);
+    int AddPoint(Point &Point);
 };
 
 /* 控制点 */
@@ -100,13 +100,20 @@ struct ControlPoints {
     Point *points;          // 控制点数组
 };
 
+struct Nurbs {
+    int n;                  // n + 1 = 控制点数
+    int p;                  // 次数
+    double *U;              // 节点数组
+    Point *Pw;              // 控制点数组
+};
+
 class GeometryCompute
 {
 public:
     GeometryCompute();
     enum {
         MAX_DIMENSION = 4,
-        MAX_DEGREE = 32,
+        MAX_DEGREE = 8,
         MIN_DEGREE = 2,
     };
 
@@ -114,23 +121,25 @@ public:
         SUCCESS = 0,        // 操作成功
         DIM_INVALID,        // 维度无效
         PARA_INVALID,       // 参数无效
-        RECURSIVE_OVERFLOW, // 递归溢出
+        RECURSIVE_OVERFLOW, // 递归层次太深
         DEGREE_INVALID,     // 次数无效
         DEGREE_TOO_HIGH,    // 次数大于 MAX_DEGREE
         DEGREE_TOO_LOW,     // 次数小于 MIN_DEGREE
         NOT_ENOUGH_MEMERY,  // 内存不足
     };
 
-    void SetTolerance(double tolerance) { mDistanceTolerance = tolerance*tolerance; }
+    void SetTolerance(double tolerance);
     double GetTolerance() { return mDistanceTolerance; }
 
-    int DecomposeCurve(int n, int p, const double *U, const Point *Pw, int &nb, Point *Qw);
-    int InterplateNurbsCurve(int KnotCount, float *Knots, float *Control, int Stride, int Order, int type);
+    int DecomposeNurbsToLine(const Nurbs &Nurbs, PointArray &PtOut);
 
+    int DecomposeCurve(int n, int p, const double *U, const Point *Pw, int &nb, Point *Qw);
     int InterpolateBezier(ControlPoints ControlPts, PointArray &PtOut);
     int InterpolateBezier(double BezierControlPts[], int Degree, int Dim,
                           double PtOut[], int Size, int *UsedSize);
 private:
+    int RecursiveBezier(Point Pts[], int Degree, int Level, PointArray &PtOut);
+
     int Recursive2DegreeBezier(double Pt1[], double Pt2[], double Pt3[], int Level);
     int Recursive3DegreeBezier(double Pt1[], double Pt2[], double Pt3[], double Pt4[],
                                int Dim, int Level);
@@ -153,6 +162,8 @@ private:
     double *mPtMem;
     int mPtIndex = 0;
     int mPtTotalSize = 0;
+    int mDegree = 3;
+    int InterpolateBezier(int Degree, Point *ControlPts, PointArray &PtOut);
 };
 
 #endif // GEOMETRYCOMPUTE_H

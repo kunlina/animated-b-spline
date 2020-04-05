@@ -132,9 +132,42 @@ void MainWindow::showKnotVector()
     ui->knots->setText(knots);
 }
 
-/// interpolateCurve - calculate new control points with de Boor algorithm,
-/// break curve into multiple Bezier curves and interpolate each Bezier curve.
-void MainWindow::interpolateCurve()
+
+void MainWindow::finalInterpolateCurve()
+{
+    Nurbs curve;
+    curve.n = controlPoints.size() - 1;
+    curve.p = 3;
+    curve.U = knotVector.data();
+
+    Point cps[100];
+    for (int i = 0; i < controlPoints.size(); ++i) {
+        cps[i].x = controlPoints.at(i)->x();
+        cps[i].y = controlPoints.at(i)->y();
+    }
+    curve.Pw =cps;
+
+    PointArray ptout;
+    ptout.validIndex = 0;
+    ptout.totalNum = 1000;
+    ptout.points = (Point *)malloc(ptout.totalNum * sizeof(Point));
+
+    easybezierInterpolator.DecomposeNurbsToLine(curve, ptout);
+
+    easyBezierInterpolatedPoints.clear();
+    easyBezierInterpolatedPoints.append(*(controlPoints.first()));
+    QPointF tmp;
+    for (int i = 0; i < ptout.validIndex; ++i)
+    {
+        tmp.setX(ptout.points[i].x);
+        tmp.setY(ptout.points[i].y);
+        easyBezierInterpolatedPoints.push_back(tmp);
+    }
+    free(ptout.points);
+    easyBezierInterpolatedPoints.push_back(*(controlPoints.last()));
+}
+
+void MainWindow::easyInterpolateCurve()
 {
     const int n = controlPoints.size() - 1;
     const int degree = 3;
@@ -147,7 +180,6 @@ void MainWindow::interpolateCurve()
         cps[i].y = controlPoints.at(i)->y();
     }
 
-//    bezierInterpolator.CalculateBoorNet(controlPoints, knotVector, boorNetPoints);
     int segnum = 0;
     Point bezierCPs[100 * (degree+1)];
     int ret = easybezierInterpolator.DecomposeCurve(n, degree, knots, cps, segnum, bezierCPs);
@@ -167,20 +199,10 @@ void MainWindow::interpolateCurve()
         }
     }
 
-    interpolatedPoints.clear();
-    interpolatedPoints.push_back(*(controlPoints.first()));
-
     easyBezierInterpolatedPoints.clear();
     easyBezierInterpolatedPoints.append(*(controlPoints.first()));
 
     for (int counter = 0; counter < boorNetPoints.size() - 3; counter += 4) {
-        bezierInterpolator.InterpolateBezier(boorNetPoints[counter],
-                                             boorNetPoints[counter + 1],
-                                             boorNetPoints[counter + 2],
-                                             boorNetPoints[counter + 3],
-                                             interpolatedPoints);
-
-
         int ret = 0;
         Point pts[4];
         for (int i = 0; i < 4; ++i) {
@@ -209,37 +231,27 @@ void MainWindow::interpolateCurve()
         }
 
         free(ptout.points);
-
-#if 0
-        int size = sizeof(double)*1000;
-        double *out = (double *)malloc(size);
-        int ret = 0;
-        int outsize = 0;
-        double contrlPt[4*2] = {0.0};
-        for (int i = 0; i < 4; ++i) {
-            contrlPt[i*2] = boorNetPoints[counter+i].x();
-            contrlPt[i*2+1] = boorNetPoints[counter+i].y();
-        }
-
-        int degree = 3;
-        int dim = 2;
-        ret = easybezierInterpolator.InterpolateBezier(contrlPt, degree, dim, out, size, &outsize);
-        if (ret != GeometryCompute::SUCCESS)  {
-            qWarning("Interpolate error %d.", ret);
-        }
-
-        QPointF tmp;
-        for (int i = 0; i < outsize/(2*sizeof(double)); ++i) {
-            tmp.setX(out[i*2]);
-            tmp.setY(out[i*2 + 1]);
-            easyBezierInterpolatedPoints.push_back(tmp);
-        }
-
-        free(out);
-#endif
     }
 
     easyBezierInterpolatedPoints.push_back(*(controlPoints.last()));
+}
+
+/// interpolateCurve - calculate new control points with de Boor algorithm,
+/// break curve into multiple Bezier curves and interpolate each Bezier curve.
+void MainWindow::interpolateCurve()
+{
+    bezierInterpolator.CalculateBoorNet(controlPoints, knotVector, boorNetPoints);
+
+    interpolatedPoints.clear();
+    interpolatedPoints.push_back(*(controlPoints.first()));
+
+    for (int counter = 0; counter < boorNetPoints.size() - 3; counter += 3) {
+        bezierInterpolator.InterpolateBezier(boorNetPoints[counter],
+                                             boorNetPoints[counter + 1],
+                                             boorNetPoints[counter + 2],
+                                             boorNetPoints[counter + 3],
+                                             interpolatedPoints);
+    }
 
     interpolatedPoints.push_back(*(controlPoints.last()));
 }
@@ -305,6 +317,8 @@ void MainWindow::updateView(QPointF *skipPoint)
 {
     QTime t;
     t.start();
+//    finalInterpolateCurve();
+    easyInterpolateCurve();
     interpolateCurve();
 
     // Show easy interpolated curve.

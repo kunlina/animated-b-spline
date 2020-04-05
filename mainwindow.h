@@ -144,6 +144,8 @@ private:
     void closeEvent(QCloseEvent *event);
     void createMenus();
     void createToolBars();
+    void easyInterpolateCurve();
+    void finalInterpolateCurve();
 };
 
 #endif // MAINWINDOW_H
