@@ -1,6 +1,8 @@
 #ifndef GEOMETRYCOMPUTE_H
 #define GEOMETRYCOMPUTE_H
 
+#include <float.h>
+
 struct Point {
     Point(): x(0.0), y(0.0), z(0.0), w(1.0) {}
     Point(double x, double y, double z, double w = 1.0): x(x), y(y), z(z), w(w) {}
@@ -74,7 +76,7 @@ struct Point {
 
     static inline bool isNull(float d)
     {
-        if (d <= 0.00001 && d >= -0.00001) {
+        if (d <=  0.00001f && d >= -0.00001f) {
             return true;
         }
         return false;
@@ -114,7 +116,7 @@ public:
     enum {
         MAX_DIMENSION = 4,
         MAX_DEGREE = 8,
-        MIN_DEGREE = 2,
+        MIN_DEGREE = 2
     };
 
     enum ERRCODE {
@@ -125,7 +127,7 @@ public:
         DEGREE_INVALID,     // 次数无效
         DEGREE_TOO_HIGH,    // 次数大于 MAX_DEGREE
         DEGREE_TOO_LOW,     // 次数小于 MIN_DEGREE
-        NOT_ENOUGH_MEMERY,  // 内存不足
+        NOT_ENOUGH_MEMERY  // 内存不足
     };
 
     void SetTolerance(double tolerance);
@@ -140,11 +142,11 @@ public:
 private:
     int RecursiveBezier(Point Pts[], int Degree, int Level, PointArray &PtOut);
 
-    int Recursive2DegreeBezier(double Pt1[], double Pt2[], double Pt3[], int Level);
+//	int Recursive2DegreeBezier(double Pt1[], double Pt2[], double Pt3[], int Level);
     int Recursive3DegreeBezier(double Pt1[], double Pt2[], double Pt3[], double Pt4[],
                                int Dim, int Level);
 
-    int Recursive2DegreeBezier(Point Pt1, Point Pt2, Point Pt3, int Level, PointArray &PtOut);
+//	int Recursive2DegreeBezier(Point Pt1, Point Pt2, Point Pt3, int Level, PointArray &PtOut);
     int Recursive3DegreeBezier(Point Pt1, Point Pt2, Point Pt3, Point Pt4, int Level, PointArray &PtOut);
 
     static int DistanceToLine(const double Pt[], const double P1[], const double P2[], int Dim,
@@ -158,11 +160,11 @@ private:
 //    const double CUSP_LIMIT = 0.0;
     static void MidPoint(double P1[], double P2[], double PMid[], int Dim);
 
-    double mDistanceTolerance = 4;
+    double mDistanceTolerance;
     double *mPtMem;
-    int mPtIndex = 0;
-    int mPtTotalSize = 0;
-    int mDegree = 3;
+    int mPtIndex;
+    int mPtTotalSize;
+    int mDegree;
     int InterpolateBezier(int Degree, Point *ControlPts, PointArray &PtOut);
 };
 

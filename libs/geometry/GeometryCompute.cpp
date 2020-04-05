@@ -51,7 +51,11 @@ double Point::DistanceToLine(const Point &Pt,
 
 GeometryCompute::GeometryCompute()
 {
-
+    mDistanceTolerance = 4;
+    mPtMem = 0;
+    mPtIndex = 0;
+    mPtTotalSize = 0;
+    mDegree = 3;
 }
 
 void GeometryCompute::SetTolerance(double tolerance)
@@ -68,7 +72,7 @@ int GeometryCompute::InterpolateBezier(ControlPoints ControlPts, PointArray &PtO
 
     if (ControlPts.degree == 2)
     {
-        Ret = Recursive2DegreeBezier(ControlPts.points[0], ControlPts.points[2], ControlPts.points[4], 0, PtOut);
+//		Ret = Recursive2DegreeBezier(ControlPts.points[0], ControlPts.points[2], ControlPts.points[4], 0, PtOut);
     }
     else if (ControlPts.degree == 3)
     {
@@ -158,7 +162,7 @@ int GeometryCompute::InterpolateBezier(double BezierControlPts[], int Degree, in
 
     if (Degree == 2)
     {
-        Ret = Recursive2DegreeBezier(&BezierControlPts[0], &BezierControlPts[2], &BezierControlPts[4], 0);
+//		Ret = Recursive2DegreeBezier(&BezierControlPts[0], &BezierControlPts[2], &BezierControlPts[4], 0);
     }
     else
     {
@@ -438,10 +442,10 @@ int GeometryCompute::DecomposeCurve(int n, int p, const double *U, const Point *
     return SUCCESS;
 }
 
-int GeometryCompute::Recursive2DegreeBezier(double Pt1[3], double Pt2[3], double Pt3[3], int Level)
-{
-    return SUCCESS;
-}
+//int GeometryCompute::Recursive2DegreeBezier(double Pt1[3], double Pt2[3], double Pt3[3], int Level)
+//{
+//	return SUCCESS;
+//}
 
 void GeometryCompute::MidPoint(double P1[], double P2[], double PMid[], int Dim)
 {
@@ -509,10 +513,10 @@ int GeometryCompute::Recursive3DegreeBezier(double Pt1[],
     return SUCCESS;
 }
 
-int GeometryCompute::Recursive2DegreeBezier(Point Pt1, Point Pt2, Point Pt3, int Level, PointArray &PtOut)
-{
-    return SUCCESS;
-}
+//int GeometryCompute::Recursive2DegreeBezier(Point Pt1, Point Pt2, Point Pt3, int Level, PointArray &PtOut)
+//{
+//	return SUCCESS;
+//}
 
 int GeometryCompute::Recursive3DegreeBezier(Point Pt1, Point Pt2, Point Pt3, Point Pt4, int Level, PointArray &PtOut)
 {

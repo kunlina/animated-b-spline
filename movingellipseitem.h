@@ -9,15 +9,15 @@
 /// \var mainWindow.
 class MovingEllipseItem : public QGraphicsEllipseItem {
 public:
-  MovingEllipseItem(qreal x, qreal y, qreal width, qreal height,
-                    MainWindow *mainWindow, QGraphicsItem *parent = 0);
+    MovingEllipseItem(qreal x, qreal y, qreal width, qreal height,
+                      MainWindow *mainWindow, QGraphicsItem *parent = 0);
 
 private:
-  MainWindow *mainWindow;
+    MainWindow *mainWindow;
 
-  /// mouseMoveEvent - moves control point on QGraphicsView, updates control
-  /// point position in \var mainWindow->controlPoints and rerenders scene.
-  void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
+    /// mouseMoveEvent - moves control point on QGraphicsView, updates control
+    /// point position in \var mainWindow->controlPoints and rerenders scene.
+    void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
 
 };
 

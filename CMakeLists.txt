@@ -5,9 +5,9 @@ set(CMAKE_VERBOSE_MAKEFILE OFF)
 project("animated-b-spline")
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 else ()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG")
 endif (CMAKE_BUILD_TYPE STREQUAL "Release")
 
 ###########
@@ -21,6 +21,8 @@ add_subdirectory(libs)
 # Add includes directories for build
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs)
 
+# Find includes in corresponding build directories, or mainwindow_ui.h can not be found
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # Instruct CMake to run moc automatically when needed
 set(CMAKE_AUTOMOC ON)
 # Create code from a list of Qt designer ui files
@@ -35,14 +37,14 @@ find_package(Qt5 COMPONENTS Gui REQUIRED)
 
 # Create executable
 add_executable(BezierCurve
-    main.cpp
-    mainwindow.cpp
-    movingellipseitem.cpp
-    mainwindow.h
-    movingellipseitem.h
-    mainwindow.ui
-    resource.qrc
-    )
+	main.cpp
+	mainwindow.cpp
+	movingellipseitem.cpp
+	mainwindow.h
+	movingellipseitem.h
+	mainwindow.ui
+	resource.qrc
+	)
 
 target_link_libraries(BezierCurve bezier)
 target_link_libraries(BezierCurve geometry)
