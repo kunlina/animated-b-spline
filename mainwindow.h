@@ -5,8 +5,9 @@
 #include <QGraphicsScene>
 #include <QHash>
 #include <QTimer>
-#include "bezier/bezierinterpolator.h"
-#include "geometry/GeometryCompute.h"
+#include <bezier/bezierinterpolator.h>
+#include <geometry/GeometryCompute.h>
+
 
 class MovingEllipseItem;
 class QSystemTrayIcon;
@@ -19,35 +20,42 @@ class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = 0);
+    explicit MainWindow(QWidget *parent = Q_NULLPTR);
     ~MainWindow();
 
 private slots:
-    // Slots for ui (bells and whistles).
-    void on_checkBox_stateChanged(int arg1);
-    void on_checkBox_2_stateChanged(int arg1);
-    void on_checkBox_3_stateChanged(int arg1);
-    void on_checkBox_4_stateChanged(int arg1);
-    void on_checkBox_5_stateChanged(int arg1);
+    // display settings
+    void onInterpPnt_stateChanged(int state);
+    void onInterpLine_stateChanged(int state);
+    void onControlPnt_stateChanged(int state);
+    void onControlLine_stateChanged(int state);
+    void onBoorPnt_stateChanged(int state);
+    void onBoorLine_stateChanged(int state);
+    void onEasyBezierPnt_stateChanged(int state);
+    void onEasyBezierLine_stateChanged(int state);
 
-    void on_torence_valueChanged(double value);
-    void on_zoomInBtn_clicked();
-    void on_zoomOutBtn_clicked();
+    // curve parameters
+    void onDegree_valueChanged(int value);
+    void onPointNum_valueChanged(int value);
 
+    // torlance settings
+    void onTorence_valueChanged(double value);
+
+    // animation setting
     void on_startStopButton_clicked();
     void on_RandomButton_clicked();
-    void on_AddPointButton_clicked();
-    void on_DelPointButton_clicked();
+//    void on_AddPointButton_clicked();
+//    void on_DelPointButton_clicked();
 
+    // performance setting
     void on_AntialiasingSlider_sliderMoved(int position);
     void on_AntialiasingSlider_valueChanged(int value);
     void on_SpeedSlider_sliderMoved(int position);
     void on_SpeedSlider_valueChanged(int value);
     void on_horizontalSlider_sliderMoved(int position);
     void on_horizontalSlider_valueChanged(int value);
-
     void on_controlPtSlider_sliderMoved(int position);
-    void on_controlPtSlider_valueChanged(int position);
+    void onControlPtSlider_valueChanged(int position);
 
     void updateView(QPointF *skipPoint = 0);
 
@@ -93,7 +101,7 @@ private:
     GeometryCompute easybezierInterpolator;
     QPolygonF easyBezierInterpolatedPoints;
 
-    int pointsNumber;
+    Nurbs mNurbsCurve;
 
     /// showRandomSpline - generate random control points and show them.
     void showRandomSpline();
@@ -118,16 +126,16 @@ private:
     void updateStatusBar();
 
     struct DisplaySettings {
-        DisplaySettings() : showInterpolatedPoints(false), showBezierLine(true), showControlPoints(true),
+        DisplaySettings() : showBezierPoints(false), showBezierLine(true), showControlPoints(true),
             showBoorPoints(false), showControlLines(true), showBoorLines(false),
             showEasyBezierLine(true), showEasyBezierInterpolatedPoints(true), controlPointSize(10)
         {}
 
-        bool showInterpolatedPoints;
+        bool showBezierPoints;
         bool showBezierLine;
         bool showControlPoints;
-        bool showBoorPoints;
         bool showControlLines;
+        bool showBoorPoints;
         bool showBoorLines;
         bool showEasyBezierLine;
         bool showEasyBezierInterpolatedPoints;

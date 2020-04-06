@@ -1,5 +1,6 @@
 #include "GeometryCompute.h"
 #include <float.h>
+#include <stdio.h>
 
 int PointArray::AddPoint(Point &Point)
 {
@@ -50,17 +51,18 @@ double Point::DistanceToLine(const Point &Pt,
 }
 
 GeometryCompute::GeometryCompute()
+    : CURVE_RECURSION_LIMIT(32)
+    , MIN_TOLERANCE(0.000001)
+    , mDistanceTolerance(4)
+    , mPtMem(NULL)
+    , mPtIndex(0)
+    , mPtTotalSize(0)
 {
-    mDistanceTolerance = 4;
-    mPtMem = 0;
-    mPtIndex = 0;
-    mPtTotalSize = 0;
-    mDegree = 3;
 }
 
 void GeometryCompute::SetTolerance(double tolerance)
 {
-    mDistanceTolerance = mDistanceTolerance < FLT_MIN ? FLT_MIN : tolerance;
+    mDistanceTolerance = mDistanceTolerance < MIN_TOLERANCE*MIN_TOLERANCE ? MIN_TOLERANCE*MIN_TOLERANCE: tolerance;
 }
 
 int GeometryCompute::InterpolateBezier(ControlPoints ControlPts, PointArray &PtOut)
@@ -314,6 +316,7 @@ int GeometryCompute::RecursiveBezier(Point Pts[], int Degree, int Level, PointAr
 
     if(Level > CURVE_RECURSION_LIMIT)
     {
+        printf("curve %d\n", Level);
         return RECURSIVE_OVERFLOW;
     }
 
@@ -334,7 +337,8 @@ int GeometryCompute::RecursiveBezier(Point Pts[], int Degree, int Level, PointAr
     {
         for (int j = 0; j <= Degree - i; ++j)
         {
-            Pts[j] = (Pts[j] + Pts[j+1])/2;
+            Point pt = (Pts[j] + Pts[j+1]);
+            Pts[j] = pt/2;
         }
         PtMid1[i] = Pts[0];
         PtMid2[Degree - i] = Pts[Degree - i];

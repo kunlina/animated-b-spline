@@ -35,16 +35,16 @@ find_package(Qt5 COMPONENTS Widgets REQUIRED)
 find_package(Qt5 COMPONENTS Core REQUIRED)
 find_package(Qt5 COMPONENTS Gui REQUIRED)
 
+
+set(HEADERS, *.h *.hpp)
+set(UI_FILES, *.ui)
+set(RES_FILES, *.qrc)
+
+# 查找指定目录下的所有.cpp与.h文件 并存放到指定变量名SC_FILES中
+file(GLOB SOURCES "*.cpp" "*.h" "*.ui" "*.qrc")
+
 # Create executable
-add_executable(BezierCurve
-	main.cpp
-	mainwindow.cpp
-	movingellipseitem.cpp
-	mainwindow.h
-	movingellipseitem.h
-	mainwindow.ui
-	resource.qrc
-	)
+add_executable(BezierCurve ${SOURCES})
 
 target_link_libraries(BezierCurve bezier)
 target_link_libraries(BezierCurve geometry)

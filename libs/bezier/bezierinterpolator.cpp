@@ -231,8 +231,6 @@ void BezierInterpolator::CalculateBoorNet(const QVector<QPointF *> &controlPoint
 
         boorNetPoints = newBoorNetPoints;
     }
-
-    qWarning() << newKnotVector;
 }
 
 void BezierInterpolator::SetDistanceTolerance(double value)

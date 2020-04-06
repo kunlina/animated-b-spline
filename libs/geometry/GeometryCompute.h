@@ -27,12 +27,12 @@ struct Point {
         x/=c; y/=c; z/=c; return *this;
     }
 
-    inline const Point operator+(const Point &p)
+    friend inline const Point operator+(const Point &p)
     {
         return p;
     }
 
-    inline const Point operator-(const Point &p)
+    friend inline const Point operator-(const Point &p)
     {
         return Point(-p.x, -p.y, -p.z);
     }
@@ -127,11 +127,12 @@ public:
         DEGREE_INVALID,     // 次数无效
         DEGREE_TOO_HIGH,    // 次数大于 MAX_DEGREE
         DEGREE_TOO_LOW,     // 次数小于 MIN_DEGREE
-        NOT_ENOUGH_MEMERY  // 内存不足
+        NOT_ENOUGH_MEMERY   // 内存不足
     };
 
     void SetTolerance(double tolerance);
     double GetTolerance() { return mDistanceTolerance; }
+    double GetMinTolerance() { return MIN_TOLERANCE; }
 
     int DecomposeNurbsToLine(const Nurbs &Nurbs, PointArray &PtOut);
 
@@ -142,30 +143,24 @@ public:
 private:
     int RecursiveBezier(Point Pts[], int Degree, int Level, PointArray &PtOut);
 
-//	int Recursive2DegreeBezier(double Pt1[], double Pt2[], double Pt3[], int Level);
     int Recursive3DegreeBezier(double Pt1[], double Pt2[], double Pt3[], double Pt4[],
                                int Dim, int Level);
 
-//	int Recursive2DegreeBezier(Point Pt1, Point Pt2, Point Pt3, int Level, PointArray &PtOut);
     int Recursive3DegreeBezier(Point Pt1, Point Pt2, Point Pt3, Point Pt4, int Level, PointArray &PtOut);
 
     static int DistanceToLine(const double Pt[], const double P1[], const double P2[], int Dim,
                               double *Distance);
     int AddPoint(double Pt[], int Dim);
-
-    static const unsigned int CURVE_RECURSION_LIMIT = 32; // 递归深度
-//    constexpr static const double CURVE_COLLINEARITY_EPSILON = 1e-30;
-//    const double CURVE_ANGLE_TOLERANCE_EPSILON = 0.01;
-//    const double ANGLE_TOLERANCE = 0.0;
-//    const double CUSP_LIMIT = 0.0;
     static void MidPoint(double P1[], double P2[], double PMid[], int Dim);
+    int InterpolateBezier(int Degree, Point *ControlPts, PointArray &PtOut);
+
+    int CURVE_RECURSION_LIMIT;
+    double MIN_TOLERANCE;
 
     double mDistanceTolerance;
     double *mPtMem;
     int mPtIndex;
     int mPtTotalSize;
-    int mDegree;
-    int InterpolateBezier(int Degree, Point *ControlPts, PointArray &PtOut);
 };
 
 #endif // GEOMETRYCOMPUTE_H
