@@ -21,15 +21,15 @@ MainWindow::MainWindow(QWidget *parent)
     // init data
     mNurbsCurve.n = 3;
     mNurbsCurve.p = 3;
-    displaySettings.showBezierPoints = true;
-    displaySettings.showBezierLine = true;
-    displaySettings.showControlLines = true;
-    displaySettings.showControlPoints = true;
-    displaySettings.showBoorLines = false;
-    displaySettings.showBoorPoints = false;
-    displaySettings.showEasyBezierInterpolatedPoints = true;
-    displaySettings.showEasyBezierLine = true;
-    displaySettings.controlPointSize = 20;
+    dspSettings.showBezierPoints = true;
+    dspSettings.showBezierLine = true;
+    dspSettings.showControlLines = true;
+    dspSettings.showControlPoints = true;
+    dspSettings.showBoorLines = false;
+    dspSettings.showBoorPoints = false;
+    dspSettings.easyBezierInterpolatedPnts = true;
+    dspSettings.easyBezierLine = true;
+    dspSettings.controlPointSize = 20;
 
     fillKnotVector();
 
@@ -40,9 +40,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->graphicsView->setScene(scene);
 
     delete ui->scene3D;
-    Qwt3D::CurvePlot *plotWidet = new Qwt3D::CurvePlot(this);
-    plotWidet->createDataset();
-    ui->scene3D = plotWidet;
+    m3DPlotWidet = new Qwt3D::CurvePlot(this);
+    ui->scene3D = m3DPlotWidet;
     ui->showCenter->addWidget(ui->scene3D);
 
     createMenus();
@@ -59,18 +58,18 @@ MainWindow::MainWindow(QWidget *parent)
     ui->degree->setMaximum(mNurbsCurve.n);
     ui->degree->setValue(mNurbsCurve.p);
 
-    ui->InterpPnt->setChecked(displaySettings.showBezierPoints);
-    ui->InterpLine->setChecked(displaySettings.showBezierLine);
-    ui->easyBezierPnt->setChecked(displaySettings.showEasyBezierInterpolatedPoints);
-    ui->easyBezierLine->setChecked(displaySettings.showEasyBezierLine);
-    ui->BoorPnt->setChecked(displaySettings.showBoorPoints);
-    ui->BoorLine->setChecked(displaySettings.showBoorLines);
-    ui->ControlPnt->setChecked(displaySettings.showControlPoints);
-    ui->ControlLine->setChecked(displaySettings.showControlLines);
+    ui->InterpPnt->setChecked(dspSettings.showBezierPoints);
+    ui->InterpLine->setChecked(dspSettings.showBezierLine);
+    ui->easyBezierPnt->setChecked(dspSettings.easyBezierInterpolatedPnts);
+    ui->easyBezierLine->setChecked(dspSettings.easyBezierLine);
+    ui->BoorPnt->setChecked(dspSettings.showBoorPoints);
+    ui->BoorLine->setChecked(dspSettings.showBoorLines);
+    ui->ControlPnt->setChecked(dspSettings.showControlPoints);
+    ui->ControlLine->setChecked(dspSettings.showControlLines);
 
     ui->torence->setValue(easybezierInterpolator.GetTolerance());
     ui->torence->setMinimum(easybezierInterpolator.GetMinTolerance());
-    ui->controlPtSlider->setValue(displaySettings.controlPointSize);
+    ui->controlPtSlider->setValue(dspSettings.controlPointSize);
 
     // bind ui
     connect(ui->InterpPnt, &QCheckBox::stateChanged, this, &MainWindow::onInterpPnt_stateChanged);
@@ -175,9 +174,10 @@ void MainWindow::finalInterpolateCurve()
     curve.U = knotVector.data();
 
     Point cps[100];
-    for (int i = 0; i < controlPoints.size(); ++i) {
-        cps[i].x = controlPoints.at(i)->x();
-        cps[i].y = controlPoints.at(i)->y();
+    for (int i = 0; i < ctrlPnts.size(); ++i) {
+        cps[i].x = ctrlPnts.at(i).x;
+        cps[i].y = ctrlPnts.at(i).y;
+        cps[i].z = ctrlPnts.at(i).z;
     }
     curve.Pw =cps;
 
@@ -191,28 +191,27 @@ void MainWindow::finalInterpolateCurve()
         qWarning("DecomposeNurbsToLine error: %d.", ret);
     }
 
-    easyBezierInterpolatedPoints.clear();
+    subdiviedPnts.clear();
     QPointF tmp;
     for (int i = 0; i < ptout.validIndex; ++i)
     {
-        tmp.setX(ptout.points[i].x);
-        tmp.setY(ptout.points[i].y);
-        easyBezierInterpolatedPoints.push_back(tmp);
+        subdiviedPnts.push_back(ptout.points[i]);
     }
     free(ptout.points);
 }
 
+#if 0
 void MainWindow::easyInterpolateCurve()
 {
-    const int n = controlPoints.size() - 1;
+    const int n = ctrlPnts.size() - 1;
     const int degree = 3;
 
     const double *knots = knotVector.constData();
 
     Point cps[100];
-    for (int i = 0; i < controlPoints.size(); ++i) {
-        cps[i].x = controlPoints.at(i)->x();
-        cps[i].y = controlPoints.at(i)->y();
+    for (int i = 0; i < ctrlPnts.size(); ++i) {
+        cps[i].x = ctrlPnts.at(i)->x();
+        cps[i].y = ctrlPnts.at(i)->y();
     }
 
     int segnum = 0;
@@ -234,8 +233,8 @@ void MainWindow::easyInterpolateCurve()
         }
     }
 
-    easyBezierInterpolatedPoints.clear();
-    easyBezierInterpolatedPoints.append(*(controlPoints.first()));
+    subdiviedPnts.clear();
+    subdiviedPnts.append(*(ctrlPnts.first()));
 
     for (int counter = 0; counter < boorNetPoints.size() - 3; counter += 4) {
         int ret = 0;
@@ -262,23 +261,25 @@ void MainWindow::easyInterpolateCurve()
         for (int i = 0; i < ptout.validIndex; ++i) {
             tmp.setX(ptout.points[i].x);
             tmp.setY(ptout.points[i].y);
-            easyBezierInterpolatedPoints.push_back(tmp);
+            subdiviedPnts.push_back(tmp);
         }
 
         free(ptout.points);
     }
 
-    easyBezierInterpolatedPoints.push_back(*(controlPoints.last()));
+    subdiviedPnts.push_back(*(ctrlPnts.last()));
 }
+#endif
 
+#if 0
 /// interpolateCurve - calculate new control points with de Boor algorithm,
 /// break curve into multiple Bezier curves and interpolate each Bezier curve.
 void MainWindow::interpolateCurve()
 {
-    bezierInterpolator.CalculateBoorNet(controlPoints, knotVector, boorNetPoints);
+    bezierInterpolator.CalculateBoorNet(ctrlPnts, knotVector, boorNetPoints);
 
     interpolatedPoints.clear();
-    interpolatedPoints.push_back(*(controlPoints.first()));
+    interpolatedPoints.push_back(*(ctrlPnts.first()));
 
     for (int counter = 0; counter < boorNetPoints.size() - 3; counter += 3) {
         bezierInterpolator.InterpolateBezier(boorNetPoints[counter],
@@ -288,15 +289,14 @@ void MainWindow::interpolateCurve()
                                              interpolatedPoints);
     }
 
-    interpolatedPoints.push_back(*(controlPoints.last()));
+    interpolatedPoints.push_back(*(ctrlPnts.last()));
 }
+#endif
 
 /// clearPoints - delete all control points properly.
 void MainWindow::clearPoints()
 {
-    for (int counter = 0; counter < controlPoints.size(); ++counter)
-        delete controlPoints[counter];
-    controlPoints.clear();
+    ctrlPnts.clear();
 }
 
 /// addControlPoint - adds control point within borders of \var graphicsView.
@@ -304,18 +304,24 @@ void MainWindow::addControlPoint()
 {
     int x_border = ui->graphicsView->width();;
     int y_border = ui->graphicsView->height();
-    int x = qrand() % x_border;
-    int y = qrand() % y_border;
-    controlPoints.push_back(new QPointF(x, y));
+    int z_border = ui->graphicsView->height();
+    int x = qrand() % (x_border - 50);
+    int y = qrand() % (y_border - 50);
+    int z = qrand() % (z_border - 50);
+
+    ctrlPnts.push_back(Point(x, y, z));
 }
 
 void MainWindow::showControlPoints()
 {
     QString cps("controlpoints: ");
 
-    for (QVector<QPointF*>::iterator pointIt = controlPoints.begin();
-         pointIt != controlPoints.end(); ++pointIt) {
-        cps.append(QString("(%01,%02)").arg((*pointIt)->x()).arg((*pointIt)->y()));
+    int total = ctrlPnts.size();
+    for (int i = 0; i < total; ++i) {
+        cps.append(QString("(%01,%02, %03)")
+                   .arg(ctrlPnts[i].x)
+                   .arg(ctrlPnts[i].y)
+                   .arg(ctrlPnts[i].z));
     }
 
     ui->controlpoints->setText(cps);
@@ -325,7 +331,7 @@ void MainWindow::updateStatusBar()
 {
     QString content(QString("Fps %1, Control Points %2, Interpolated Points %3, %4")
                     .arg(framesNumber).arg(mNurbsCurve.n).arg(interpolatedPoints.size())
-                    .arg(easyBezierInterpolatedPoints.size()));
+                    .arg(subdiviedPnts.size()));
 
     ui->statusBar->showMessage(content);
 }
@@ -339,7 +345,7 @@ void MainWindow::showRandomSpline()
         addControlPoint();
     }
 
-    clearSceneAndUpdateView();
+    clearAndUpdateAllView();
 }
 
 void MainWindow::on_startStopButton_clicked()
@@ -347,27 +353,25 @@ void MainWindow::on_startStopButton_clicked()
     showRandomSpline();
 }
 
-/// updateView - calculate content of the scene based on control points and show
+/// update2DView - calculate content of the scene based on control points and show
 /// it in graphicsView.
-void MainWindow::updateView(QPointF *skipPoint)
+void MainWindow::update2DView(int skipId)
 {
     QTime t;
     t.start();
-    finalInterpolateCurve();
-//    easyInterpolateCurve();
-//    interpolateCurve();
 
     // Show easy interpolated curve.
-    for (QPolygonF::iterator pointIt = easyBezierInterpolatedPoints.begin(),
-         pointEnd = easyBezierInterpolatedPoints.end(); pointIt != pointEnd; ++pointIt) {
 
-        if (displaySettings.showEasyBezierLine &&
-            pointIt != easyBezierInterpolatedPoints.end() - 1) {
-            scene->addLine(QLineF(*pointIt, *(pointIt + 1)), QPen("red"));
+    int total = subdiviedPnts.size();
+    for (int i = 0; i < total; ++i) {
+        if (dspSettings.easyBezierLine && i != total -1) {
+            scene->addLine(QLineF(QPointF(subdiviedPnts[i].x, subdiviedPnts[i].y),
+                                  QPointF(subdiviedPnts[i+1].x, subdiviedPnts[i+1].y)),
+                           QPen("red"));
         }
 
-        if (displaySettings.showEasyBezierInterpolatedPoints) {
-            scene->addEllipse(pointIt->x() - 2, pointIt->y() - 2, 4, 4, QPen("red"),
+        if (dspSettings.easyBezierInterpolatedPnts) {
+            scene->addEllipse(subdiviedPnts[i].x - 2, subdiviedPnts[i].y - 2, 4, 4, QPen("red"),
                               QBrush("red"));
         }
     }
@@ -376,47 +380,46 @@ void MainWindow::updateView(QPointF *skipPoint)
     for (QPolygonF::iterator pointIt = interpolatedPoints.begin(),
          pointEnd = interpolatedPoints.end(); pointIt != pointEnd; ++pointIt) {
 
-        if (displaySettings.showBezierLine &&
+        if (dspSettings.showBezierLine &&
             pointIt != interpolatedPoints.end() - 1) {
                 scene->addLine(QLineF(*pointIt, *(pointIt + 1)), QPen("black"));
         }
 
-        if (displaySettings.showBezierPoints) {
+        if (dspSettings.showBezierPoints) {
             scene->addEllipse(pointIt->x() - 2, pointIt->y() - 2, 4, 4, QPen("black"),
                               QBrush("black"));
         }
     }
 
     // Show control points.
-    for (QVector<QPointF*>::iterator pointIt = controlPoints.begin(),
-         pointEnd = controlPoints.end(); pointIt != pointEnd; ++pointIt) {
-
-        if (displaySettings.showControlLines && pointIt != controlPoints.end() - 1) {
-            scene->addLine(QLineF(**pointIt, **(pointIt + 1)), QPen("blue"));
+    total = ctrlPnts.size();
+    for (int i = 0; i < total; ++i) {
+        if (dspSettings.showControlLines && i != total - 1) {
+            scene->addLine(QLineF(QPointF(ctrlPnts[i].x, ctrlPnts[i].y),
+                                  QPointF(ctrlPnts[i+1].x, ctrlPnts[i+1].y)),
+                           QPen("blue"));
         }
 
-        if ((skipPoint && skipPoint == *pointIt) ||
-                !displaySettings.showControlPoints) {
-            continue;
+        if (dspSettings.showControlPoints && i != skipId) {
+            const int controlPointSize = dspSettings.controlPointSize;
+            QRectF size;
+            size.setSize(QSize(controlPointSize, controlPointSize));
+            size.moveCenter(QPoint(ctrlPnts[i].x, ctrlPnts[i].y));
+            MovingEllipseItem *pointItem = new MovingEllipseItem(size, this);
+            pointItem->setCtrlPntId(i);
+            pointItem->setBrush(QBrush("blue"));
+            pointItem->setFlag(QGraphicsItem::ItemIsMovable, true);
+            pointItem->update();
+            scene->addItem(pointItem);
         }
-
-        const int controlPointSize = displaySettings.controlPointSize;
-        MovingEllipseItem *pointItem = new MovingEllipseItem(
-                    (*pointIt)->x() - controlPointSize / 2,
-                    (*pointIt)->y() - controlPointSize / 2,
-                    controlPointSize, controlPointSize, this);
-        itemToPoint[pointItem] = *pointIt;
-        pointItem->setBrush(QBrush("blue"));
-        pointItem->setFlag(QGraphicsItem::ItemIsMovable, true);
-        pointItem->update();
-        scene->addItem(pointItem);
     }
+
     // Show boor net points.
     for (QPolygonF::iterator pointIt = boorNetPoints.begin(),
          pointEnd = boorNetPoints.end(); pointIt != pointEnd; ++pointIt) {
-        if (displaySettings.showBoorLines && pointIt != boorNetPoints.end() - 1)
+        if (dspSettings.showBoorLines && pointIt != boorNetPoints.end() - 1)
             scene->addLine(QLineF(*pointIt, *(pointIt + 1)), QPen("red"));
-        if (displaySettings.showBoorPoints)
+        if (dspSettings.showBoorPoints)
             scene->addEllipse(pointIt->x() - 2, pointIt->y() - 2, 4, 4, QPen("green"),
                               QBrush("green"));
     }
@@ -430,50 +433,50 @@ void MainWindow::updateView(QPointF *skipPoint)
 
 void MainWindow::onInterpPnt_stateChanged(int state)
 {
-    displaySettings.showBezierPoints = state;
-    clearSceneAndUpdateView();
+    dspSettings.showBezierPoints = state;
+    clearAndUpdateAllView();
 }
 
 void MainWindow::onInterpLine_stateChanged(int state)
 {
-    displaySettings.showBezierLine = state;
-    clearSceneAndUpdateView();
+    dspSettings.showBezierLine = state;
+    clearAndUpdateAllView();
 }
 
 void MainWindow::onControlPnt_stateChanged(int state)
 {
-    displaySettings.showControlPoints = state;
-    clearSceneAndUpdateView();
+    dspSettings.showControlPoints = state;
+    clearAndUpdateAllView();
 }
 
 void MainWindow::onBoorPnt_stateChanged(int state)
 {
-    displaySettings.showBoorPoints = state;
-    clearSceneAndUpdateView();
+    dspSettings.showBoorPoints = state;
+    clearAndUpdateAllView();
 }
 
 void MainWindow::onControlLine_stateChanged(int state)
 {
-    displaySettings.showControlLines = state;
-    clearSceneAndUpdateView();
+    dspSettings.showControlLines = state;
+    clearAndUpdateAllView();
 }
 
 void MainWindow::onBoorLine_stateChanged(int state)
 {
-    displaySettings.showBoorLines = state;
-    clearSceneAndUpdateView();
+    dspSettings.showBoorLines = state;
+    clearAndUpdateAllView();
 }
 
 void MainWindow::onEasyBezierPnt_stateChanged(int state)
 {
-    displaySettings.showEasyBezierInterpolatedPoints = state;
-    clearSceneAndUpdateView();
+    dspSettings.easyBezierInterpolatedPnts = state;
+    clearAndUpdateAllView();
 }
 
 void MainWindow::onEasyBezierLine_stateChanged(int state)
 {
-    displaySettings.showEasyBezierLine = state;
-    clearSceneAndUpdateView();
+    dspSettings.easyBezierLine = state;
+    clearAndUpdateAllView();
 }
 
 void MainWindow::onDegree_valueChanged(int value)
@@ -503,8 +506,7 @@ void MainWindow::onPointNum_valueChanged(int value)
         }
     } else if (diff < 0) {
         for (int i = 0; i < -diff; ++i) {
-            delete controlPoints.last();
-            controlPoints.pop_back();
+            ctrlPnts.pop_back();
         }
     }
 
@@ -512,32 +514,33 @@ void MainWindow::onPointNum_valueChanged(int value)
 
     fillKnotVector();
     updateStatusBar();
-    clearSceneAndUpdateView();
+    clearAndUpdateAllView();
 }
 
 void MainWindow::onTorence_valueChanged(double value)
 {
     easybezierInterpolator.SetTolerance(value);
-    clearSceneAndUpdateView();
+    clearAndUpdateAllView();
 }
 
 
 /// moveCurve - moves control points according to its speed and updates view.
 void MainWindow::moveCurve()
 {
-    if (controlPointsSpeed.size() != controlPoints.size()) {
+    if (controlPointsSpeed.size() != ctrlPnts.size()) {
         // Randomly create speed.
         controlPointsSpeed.clear();
         const int speedLimit = 5;
-        for (int counter = 0; counter < controlPoints.size(); ++counter) {
+        for (int counter = 0; counter < ctrlPnts.size(); ++counter) {
             controlPointsSpeed.push_back(QPointF(qrand() % speedLimit,
                                                  qrand() % speedLimit));
         }
     }
 
     // Move each control point.
-    for (int counter = 0; counter < controlPoints.size(); ++counter) {
-        QPointF &point = *controlPoints[counter];
+    int total = ctrlPnts.size();
+    for (int counter = 0; counter < total; ++counter) {
+        QPointF point(ctrlPnts[counter].x, ctrlPnts[counter].y);
         QPointF &speed = controlPointsSpeed[counter];
         double xSpeed = speedMultiplicator * speed.x();
         double ySpeed = speedMultiplicator * speed.y();
@@ -559,7 +562,7 @@ void MainWindow::moveCurve()
         }
     }
 
-    clearSceneAndUpdateView();
+    clearAndUpdateAllView();
 }
 
 void MainWindow::on_RandomButton_clicked()
@@ -579,7 +582,7 @@ void MainWindow::on_RandomButton_clicked()
 //    addControlPoint();
 //    fillKnotVector();
 //    updateStatusBar();
-//    clearSceneAndUpdateView();
+//    clearAndUpdateAllView();
 //}
 
 //void MainWindow::on_DelPointButton_clicked()
@@ -588,15 +591,15 @@ void MainWindow::on_RandomButton_clicked()
 //        return;
 //    --mNurbsCurve.n;
 
-//    delete controlPoints.last();
-//    controlPoints.pop_back();
+//    delete ctrlPnts.last();
+//    ctrlPnts.pop_back();
 //    showControlPoints();
 
 //    if (!controlPointsSpeed.empty())
 //        controlPointsSpeed.pop_back();
 //    fillKnotVector();
 //    updateStatusBar();
-//    clearSceneAndUpdateView();
+//    clearAndUpdateAllView();
 //}
 
 /// updateFPS - show FPS in gui.
@@ -606,10 +609,26 @@ void MainWindow::updateFPS()
     framesNumber = 0;
 }
 
-void MainWindow::clearSceneAndUpdateView()
+void MainWindow::clearAndUpdateAllView()
 {
+    finalInterpolateCurve();
+
     scene->clear();
-    updateView();
+    update2DView();
+
+    update3DWidget();
+}
+
+void MainWindow::update3DWidget()
+{
+    Qwt3D::TripleVector data;
+    for (int i = 0; i < subdiviedPnts.size(); ++i) {
+        Point pt(subdiviedPnts.at(i));
+        data.push_back(Qwt3D::Triple(pt.x, pt.y, pt.z));
+    }
+
+    m3DPlotWidet->setPointsOnCurve(data);
+    m3DPlotWidet->updateData();
 }
 
 void MainWindow::on_AntialiasingSlider_sliderMoved(int position)
@@ -675,7 +694,7 @@ void MainWindow::on_horizontalSlider_sliderMoved(int position)
 
     ui->QualityLabel->setText(prefix + postfix);
 
-     clearSceneAndUpdateView();
+     clearAndUpdateAllView();
 }
 
 void MainWindow::on_horizontalSlider_valueChanged(int value)
@@ -692,9 +711,9 @@ void MainWindow::onControlPtSlider_valueChanged(int position)
 {
     QString prefix = "Control Pointsize: ";
     ui->controlPtSizeLabel->setText(prefix + QString::number(position));
-    displaySettings.controlPointSize = position;
+    dspSettings.controlPointSize = position;
 
-    clearSceneAndUpdateView();
+    clearAndUpdateAllView();
 }
 
 void MainWindow::createSystemTrayActions()

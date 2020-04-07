@@ -5,9 +5,9 @@ set(CMAKE_VERBOSE_MAKEFILE OFF)
 project("animated-b-spline")
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 else ()
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG")
 endif (CMAKE_BUILD_TYPE STREQUAL "Release")
 
 ###########
@@ -34,11 +34,6 @@ set(CMAKE_AUTORCC ON)
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
 find_package(Qt5 COMPONENTS Core REQUIRED)
 find_package(Qt5 COMPONENTS Gui REQUIRED)
-
-
-set(HEADERS, *.h *.hpp)
-set(UI_FILES, *.ui)
-set(RES_FILES, *.qrc)
 
 # 查找指定目录下的所有.cpp与.h文件 并存放到指定变量名SC_FILES中
 file(GLOB SOURCES "*.cpp" "*.h" "*.ui" "*.qrc")

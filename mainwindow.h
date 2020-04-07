@@ -16,6 +16,9 @@ namespace Ui {
 class MainWindow;
 }
 
+namespace  Qwt3D{
+class CurvePlot;
+}
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
@@ -57,7 +60,6 @@ private slots:
     void on_controlPtSlider_sliderMoved(int position);
     void onControlPtSlider_valueChanged(int position);
 
-    void updateView(QPointF *skipPoint = 0);
 
     void moveCurve();
 
@@ -67,7 +69,7 @@ private slots:
     void show3DScene();
     void show2DScene();
 private:
-    void clearSceneAndUpdateView();
+    void clearAndUpdateAllView();
     void createSystemTrayActions();
     // Crunch. After moving of control point scene must be rerendered and I am too
     // lazy to create public function for it.
@@ -86,29 +88,28 @@ private:
     // Speed of control point is multiplied by this value before moving.
     double speedMultiplicator;
 
-    QVector<QPointF*> controlPoints;
+    std::vector<Point> ctrlPnts;
     QVector<qreal> knotVector;
     QPolygonF boorNetPoints;
     QPolygonF interpolatedPoints;
-
-    // Mapping of items on the scene to points in \var controlPoints.
-    QHash<MovingEllipseItem*, QPointF*> itemToPoint;
 
     QVector<QPointF> controlPointsSpeed;
 
     // Object with interface to boor net calculator and Bezier interpolation.
     BezierInterpolator bezierInterpolator;
     GeometryCompute easybezierInterpolator;
-    QPolygonF easyBezierInterpolatedPoints;
+    std::vector<Point> subdiviedPnts;
 
     Nurbs mNurbsCurve;
 
     /// showRandomSpline - generate random control points and show them.
     void showRandomSpline();
 
+#if 0
     /// interpolateCurve - calculate new control points with de Boor algorithm,
     /// break curve into multiple Bezier curves and interpolate each Bezier curve.
     void interpolateCurve();
+#endif
 
     /// fillKnotVector - fill \var knotVector with knots for uniform cubic
     /// B-spline that passes through endpoints.
@@ -128,7 +129,7 @@ private:
     struct DisplaySettings {
         DisplaySettings() : showBezierPoints(false), showBezierLine(true), showControlPoints(true),
             showBoorPoints(false), showControlLines(true), showBoorLines(false),
-            showEasyBezierLine(true), showEasyBezierInterpolatedPoints(true), controlPointSize(10)
+            easyBezierLine(true), easyBezierInterpolatedPnts(true), controlPointSize(10)
         {}
 
         bool showBezierPoints;
@@ -137,23 +138,28 @@ private:
         bool showControlLines;
         bool showBoorPoints;
         bool showBoorLines;
-        bool showEasyBezierLine;
-        bool showEasyBezierInterpolatedPoints;
+        bool easyBezierLine;
+        bool easyBezierInterpolatedPnts;
         int controlPointSize;
-    } displaySettings;
+    } dspSettings;
 
     QAction *restoreAction;
     QAction *quitAction;
 
     QSystemTrayIcon *trayIcon;
     QMenu *trayIconMenu;
+    Qwt3D::CurvePlot *m3DPlotWidet;
     void createTrayIcon();
     void createActions();
     void closeEvent(QCloseEvent *event);
     void createMenus();
     void createToolBars();
+#if 0 // delete later
     void easyInterpolateCurve();
+#endif
     void finalInterpolateCurve();
+    void update3DWidget();
+    void update2DView(int skipId = -1);
 };
 
 #endif // MAINWINDOW_H

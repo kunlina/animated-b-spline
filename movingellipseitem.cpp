@@ -1,5 +1,12 @@
 #include "movingellipseitem.h"
 #include <QGraphicsSceneMouseEvent>
+#include <QDebug>
+
+MovingEllipseItem::MovingEllipseItem(QRectF f, MainWindow *mainWindow, QGraphicsItem *parent)
+    : QGraphicsEllipseItem(f, parent)
+    , mainWindow(mainWindow)
+{
+}
 
 MovingEllipseItem::MovingEllipseItem(qreal x, qreal y, qreal width,
                                      qreal height, MainWindow *mainWindow,
@@ -13,28 +20,24 @@ MovingEllipseItem::MovingEllipseItem(qreal x, qreal y, qreal width,
 // point position in \var mainWindow->controlPoints and rerenders scene.
 void MovingEllipseItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
-    // Check for borders.
-    // FIXME: Correctly determine borders of view.
-    //if (pos.x() > 0 && pos.x() < 1500 && pos.y() > 0 && pos.y() < 1500)
-    if (true)
-        QGraphicsEllipseItem::mouseMoveEvent(event);
-    else
-        return;
+    QGraphicsEllipseItem::mouseMoveEvent(event);
 
-    const QPointF &pos = event->scenePos();
-    // FIXME: position this on center of mouse position.
-    //this->setPos(pos.x(), pos.y());
-    QPointF *point = mainWindow->itemToPoint[this];
-    *point = pos;
+    const QPointF pos = event->scenePos();
+    mainWindow->ctrlPnts.at(mId).x = pos.x();
+    mainWindow->ctrlPnts.at(mId).y = pos.y();
+
+    // remove other items
     const QList<QGraphicsItem*> &items = mainWindow->scene->items();
     for (QList<QGraphicsItem*>::const_iterator itemIt = items.begin();
          itemIt != items.end(); ++itemIt) {
 
         if (*itemIt != this) {
             mainWindow->scene->removeItem(*itemIt);
-            //mainWindow->itemToPoint.remove(static_cast<MovingEllipseItem*>(*itemIt));
             delete *itemIt;
         }
     }
-    mainWindow->updateView(point);
+
+    mainWindow->finalInterpolateCurve();
+    mainWindow->update2DView(mId);
+    mainWindow->update3DWidget();
 }

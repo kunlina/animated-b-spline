@@ -88,7 +88,7 @@ struct Point {
 
 /* 输出的小线段 */
 struct PointArray {
-    int validIndex;         // 已经使用的最后一个数的索引
+    int validIndex;         // 已经使用的个数
     int totalNum;           // points空间的总长度
     Point *points;
 

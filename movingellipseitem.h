@@ -9,11 +9,14 @@
 /// \var mainWindow.
 class MovingEllipseItem : public QGraphicsEllipseItem {
 public:
+    explicit MovingEllipseItem(QRectF f, MainWindow *mainWindow, QGraphicsItem *parent = Q_NULLPTR);
     MovingEllipseItem(qreal x, qreal y, qreal width, qreal height,
-                      MainWindow *mainWindow, QGraphicsItem *parent = 0);
+                      MainWindow *mainWindow, QGraphicsItem *parent = Q_NULLPTR);
+    void setCtrlPntId(int id) {mId = id;}
 
 private:
     MainWindow *mainWindow;
+    int mId;
 
     /// mouseMoveEvent - moves control point on QGraphicsView, updates control
     /// point position in \var mainWindow->controlPoints and rerenders scene.
