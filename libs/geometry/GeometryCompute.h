@@ -103,10 +103,12 @@ struct ControlPoints {
 };
 
 struct Nurbs {
-    int n;                  // n + 1 = 控制点数
-    int p;                  // 次数
-    double *U;              // 节点数组
-    Point *Pw;              // 控制点数组
+    int n;                  // n+1=控制点数
+    int p;                  // 次数 n>=p, n=p时,为bezier曲线
+    double *U;              // 节点数组, 长度(n+1)+(p+1)
+    Point *Pw;              // 控制点数组, 长度n+1
+    int nb;                 // bezier段数
+    Point *Qw;              // 每个bezier段的控制点
 };
 
 class GeometryCompute
