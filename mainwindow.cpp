@@ -477,7 +477,7 @@ void MainWindow::onDegree_valueChanged(int value)
 
     mNurbsCurve.p = value;
     fillKnotVector();
-    showRandomSpline();
+    clearAndUpdateAllView();
 }
 
 void MainWindow::onPointNum_valueChanged(int value)
