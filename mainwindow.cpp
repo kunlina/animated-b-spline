@@ -168,35 +168,25 @@ void MainWindow::showKnotVector()
 
 void MainWindow::finalInterpolateCurve()
 {
-    Nurbs curve;
-    curve.n = mNurbsCurve.n;
-    curve.p = mNurbsCurve.p;
-    curve.U = knotVector.data();
-
-    Point cps[100];
-    for (int i = 0; i < ctrlPnts.size(); ++i) {
-        cps[i].x = ctrlPnts.at(i).x;
-        cps[i].y = ctrlPnts.at(i).y;
-        cps[i].z = ctrlPnts.at(i).z;
-    }
-    curve.Pw =cps;
+    mNurbsCurve.U = knotVector.data();
+    mNurbsCurve.Pw =ctrlPnts.data();
 
     PointArray ptout;
     ptout.validIndex = 0;
     ptout.totalNum = 1000;
     ptout.points = (Point *)malloc(ptout.totalNum * sizeof(Point));
 
-    int ret = easybezierInterpolator.DecomposeNurbsToLine(curve, ptout);
+    int ret = easybezierInterpolator.DecomposeNurbsToLine(mNurbsCurve, ptout);
     if (ret != GeometryCompute::SUCCESS)  {
         qWarning("DecomposeNurbsToLine error: %d.", ret);
     }
 
     subdiviedPnts.clear();
     QPointF tmp;
-    for (int i = 0; i < ptout.validIndex; ++i)
-    {
+    for (int i = 0; i < ptout.validIndex; ++i) {
         subdiviedPnts.push_back(ptout.points[i]);
     }
+
     free(ptout.points);
 }
 
@@ -626,9 +616,21 @@ void MainWindow::update3DWidget()
         Point pt(subdiviedPnts.at(i));
         data.push_back(Qwt3D::Triple(pt.x, pt.y, pt.z));
     }
-
     m3DPlotWidet->setPointsOnCurve(data);
+
+    double *pw = new double [4*(mNurbsCurve.n+1)];
+    for (int i = 0; i < mNurbsCurve.n+1; ++i) {
+        pw[4*i] = mNurbsCurve.Pw[i].x;
+        pw[4*i+1] = mNurbsCurve.Pw[i].y;
+        pw[4*i+2] = mNurbsCurve.Pw[i].z;
+        pw[4*i+3] = mNurbsCurve.Pw[i].w;
+    }
+    m3DPlotWidet->setNurbsData(mNurbsCurve.n+1+mNurbsCurve.p+1,
+                               mNurbsCurve.U, 4, pw, mNurbsCurve.p+1);
+    delete [] pw;
+
     m3DPlotWidet->updateData();
+    m3DPlotWidet->update();
 }
 
 void MainWindow::on_AntialiasingSlider_sliderMoved(int position)
