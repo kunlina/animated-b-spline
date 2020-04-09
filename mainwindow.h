@@ -6,8 +6,7 @@
 #include <QHash>
 #include <QTimer>
 #include <bezier/bezierinterpolator.h>
-#include <geometry/GeometryCompute.h>
-
+#include <kbspline/BSplineSubdivision.hpp>
 
 class MovingEllipseItem;
 class QSystemTrayIcon;
@@ -81,14 +80,14 @@ private:
     // Main scene for spline visualization.
     QGraphicsScene *scene;
 
-    QTimer *animationTimer; // Control points will be moved by this timer.
+    QTimer *animationTimer; // Control Points will be moved by this timer.
     QTimer *fpsTimer; // On this timer fpsLabel is updated.
     unsigned framesNumber; // Number of frames rendered so far.
 
     // Speed of control point is multiplied by this value before moving.
     double speedMultiplicator;
 
-    std::vector<Point> ctrlPnts;
+    std::vector<KBSpline::Point> ctrlPnts;
     QVector<qreal> knotVector;
     QPolygonF boorNetPoints;
     QPolygonF interpolatedPoints;
@@ -97,16 +96,16 @@ private:
 
     // Object with interface to boor net calculator and Bezier interpolation.
     BezierInterpolator bezierInterpolator;
-    GeometryCompute easybezierInterpolator;
-    std::vector<Point> subdiviedPnts;
+    KBSpline::BSplineSubdivision easybezierInterpolator;
+    std::vector<KBSpline::Point> subdiviedPnts;
 
-    Nurbs mNurbsCurve;
+    KBSpline::BSpline mNurbsCurve;
 
-    /// showRandomSpline - generate random control points and show them.
+    /// showRandomSpline - generate random control Points and show them.
     void showRandomSpline();
 
 #if 0
-    /// interpolateCurve - calculate new control points with de Boor algorithm,
+    /// interpolateCurve - calculate new control Points with de Boor algorithm,
     /// break curve into multiple Bezier curves and interpolate each Bezier curve.
     void interpolateCurve();
 #endif
@@ -119,7 +118,7 @@ private:
 
     /// addControlPoint - adds control point within borders of \var graphicsView.
     void addControlPoint();
-    /// clearPoints - delete all control points properly.
+    /// clearPoints - delete all control Points properly.
     void clearPoints();
 
     void showControlPoints();

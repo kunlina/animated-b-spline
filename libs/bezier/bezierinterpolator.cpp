@@ -13,7 +13,7 @@ BezierInterpolator::BezierInterpolator()
     : DistanceTolerance(50)
 {}
 
-// InterpolateBezier - interpolates points with bezier curve.
+// InterpolateBezier - interpolates Points with bezier curve.
 // Algorithm is based on article "Adaptive Subdivision of Bezier Curves" by
 // Maxim Shemanarev.
 // http://www.antigrain.com/research/adaptive_bezier/index.html
@@ -28,7 +28,7 @@ void BezierInterpolator::InterpolateBezier(double x1, double y1,
         return;
     }
 
-    // Calculate all the mid-points of the line segments
+    // Calculate all the mid-Points of the line segments
     double x12   = (x1 + x2) / 2;
     double y12   = (y1 + y2) / 2;
     double x23   = (x2 + x3) / 2;
@@ -169,7 +169,7 @@ void BezierInterpolator::InterpolateBezier(const QPointF &p1, const QPointF &p2,
                       p4.y(), interpolatedPoints, level);
 }
 
-// CalculateBoorNet - inserts new control points with de Boor algorithm for
+// CalculateBoorNet - inserts new control Points with de Boor algorithm for
 // transformation of B-spline into composite Bezier curve.
 void BezierInterpolator::CalculateBoorNet(const QVector<QPointF *> &controlPoints,
                                           const QVector<qreal> &knotVector,
@@ -207,7 +207,7 @@ void BezierInterpolator::CalculateBoorNet(const QVector<QPointF *> &controlPoint
         for (int i = 0; i < increaseMultiplicity; ++i)
             newKnotVector.insert(knotCounter, newKnotVector[knotCounter]);
 
-        // Fill new control points.
+        // Fill new control Points.
         QPolygonF newBoorNetPoints;
         for (int i = 0; i <= knotCounter - curveDegree; ++i)
             newBoorNetPoints.push_back(boorNetPoints[i]);

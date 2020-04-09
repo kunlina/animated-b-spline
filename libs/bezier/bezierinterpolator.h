@@ -9,7 +9,7 @@ public:
 
     BezierInterpolator();
 
-    // 1. InterpolateBezier - interpolates points with bezier curve.
+    // 1. InterpolateBezier - interpolates Points with bezier curve.
     // Algorithm is based on article "Adaptive Subdivision of Bezier Curves" by
     // Maxim Shemanarev.
     // http://www.antigrain.com/research/adaptive_bezier/index.html
@@ -21,7 +21,7 @@ public:
                            QPolygonF &interpolatedPoints,
                            unsigned level = 0) const;
 
-    // CalculateBoorNet - inserts new control points with de Boor algorithm for
+    // CalculateBoorNet - inserts new control Points with de Boor algorithm for
     // transformation of B-spline into composite Bezier curve.
     void CalculateBoorNet(const QVector<QPointF*> &controlPoints,
                           const QVector<qreal> &knotVector,

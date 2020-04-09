@@ -1,13 +1,15 @@
-#include "GeometryCompute.h"
-#include <float.h>
+#include "BSplineSubdivision.hpp"
+
 #include <stdio.h>
+
+using namespace KBSpline;
 
 int PointArray::AddPoint(Point &Point)
 {
-    if (validIndex < totalNum - 1)
+    if (ValidIndex < TotalNum - 1)
     {
-        points[validIndex] = Point;
-        validIndex++;
+        Points[ValidIndex] = Point;
+        ValidIndex++;
         return 0;
     }
     else
@@ -17,7 +19,7 @@ int PointArray::AddPoint(Point &Point)
 }
 
 /**
- * @brief GeometryCompute::DistanceToLine
+ * @brief BSplineSubdivision::DistanceToLine
  * @param Pt 输入: 直线外的点
  * @param LineP1 输入: 直线上的点P1
  * @param LineP2 输入: 直线上的点P2
@@ -40,53 +42,51 @@ double Point::DistanceToLine(const Point &Pt,
     P1P2 = P2 - P1;
     P1Pt = Pt - P1;
 
-    P1P2Dist = dotProduct(P1P2, P1P2);
+    P1P2Dist = DotProduct(P1P2, P1P2);
 
-    if (isNull(P1P2Dist))
+    if (IsNull(P1P2Dist))
     {
-        return dotProduct(P1Pt, P1Pt);
+        return DotProduct(P1Pt, P1Pt);
     }
 
-    T = dotProduct(P1P2, P1Pt);
+    T = DotProduct(P1P2, P1Pt);
     T /= P1P2Dist;  // 系数t
 
     tmp = P1 + T*P1P2 - Pt;
-    return dotProduct(tmp, tmp);
+    return DotProduct(tmp, tmp);
 }
 
-GeometryCompute::GeometryCompute()
-    : CURVE_RECURSION_LIMIT(32)
-    , MIN_TOLERANCE(0.000001)
-    , mDistanceTolerance(4)
-    , mPtMem(NULL)
-    , mPtIndex(0)
-    , mPtTotalSize(0)
+BSplineSubdivision::BSplineSubdivision(int RecursionLimit, double DefaultTolerance, double MiniTolerance)
+    : CURVE_RECURSION_LIMIT(RecursionLimit)
+    , MIN_TOLERANCE(MiniTolerance)
+    , mDistanceTolerance(DefaultTolerance)
 {
 }
 
-void GeometryCompute::SetTolerance(double tolerance)
+void BSplineSubdivision::SetTolerance(double tolerance)
 {
     mDistanceTolerance = mDistanceTolerance < MIN_TOLERANCE*MIN_TOLERANCE ? MIN_TOLERANCE*MIN_TOLERANCE: tolerance;
 }
 
-int GeometryCompute::DecomposeNurbsToLine(const Nurbs &Nurbs, PointArray &PtOut)
+int BSplineSubdivision::DecomposeNurbsToLine(const BSpline &BSpline, PointArray &PtOut)
 {
     int Ret = SUCCESS;
-    int n = Nurbs.n;
-    int p = Nurbs.p;
-    Point *Pw = Nurbs.Pw;
-    double *U = Nurbs.U;
+    int n = BSpline.n;
+    int p = BSpline.p;
+    Point *Pw = BSpline.Pw;
+    double *U = BSpline.U;
 
     const int m = n + p + 1;    /* 节点数 */
     int a = p;         /* 节点Ua在重复组中(重复度p)最右端出现时的下标. */
     int b = p + 1;     /* 节点Ub在紧随Ua之后，重复组中最右端的下标(重复度还不到p). */
 
-    if (p > MAX_DEGREE)
+    Ret = CheckKnotvector(BSpline);
+    if (Ret != SUCCESS)
     {
-        return DEGREE_TOO_HIGH;
+        return Ret;
     }
 
-    PtOut.validIndex = 0;
+    PtOut.ValidIndex = 0;
     Point Qw[MAX_DEGREE+1];
     Point QwNext[MAX_DEGREE+1];
 
@@ -163,7 +163,7 @@ int GeometryCompute::DecomposeNurbsToLine(const Nurbs &Nurbs, PointArray &PtOut)
     return  SUCCESS;
 }
 
-int GeometryCompute::InterpolateBezier(int Degree, Point *ControlPts, PointArray &PtOut)
+int BSplineSubdivision::InterpolateBezier(int Degree, Point *ControlPts, PointArray &PtOut)
 {
     int Ret = SUCCESS;
 
@@ -188,7 +188,7 @@ int GeometryCompute::InterpolateBezier(int Degree, Point *ControlPts, PointArray
     return Ret;
 }
 
-int GeometryCompute::RecursiveBezier(Point Pts[], int Degree, int Level, PointArray &PtOut)
+int BSplineSubdivision::RecursiveBezier(Point Pts[], int Degree, int Level, PointArray &PtOut)
 {
     int Ret = SUCCESS;
     double DisMax = 0.0;
@@ -255,11 +255,66 @@ int GeometryCompute::RecursiveBezier(Point Pts[], int Degree, int Level, PointAr
     return SUCCESS;
 }
 
+int BSplineSubdivision::CheckKnotvector(const BSpline &BSpline)
+{
+    int Kindex = BSpline.n;
+    int Degree = BSpline.p;
+    int ControlPntNum = BSpline.n + 1;
+
+    int Order = Degree + 1;
+    int KnotNum = ControlPntNum + Order;
+    int Mult = 1;
+
+    if (BSpline.p < MIN_DEGREE || BSpline.p > MAX_DEGREE)
+    {
+        return DEGREE_INVALID;
+    }
+
+    if (ControlPntNum < Order) {
+        return N_LESS_THAN_P;
+    }
+
+    for (int i = 0; i < KnotNum - 1; ++i)
+    {
+        if (BSpline.U[i] > BSpline.U[i+1])
+        {
+            return KNOTS_DECREASING;
+        }
+        else if (BSpline.U[i] == BSpline.U[i+1])
+        {
+            Mult++;
+            if (Mult > Order)
+            {
+                return MULTI_GREATER_THAN_ORDER;
+            }
+        }
+        else
+        {
+            Mult = 1;
+        }
+    }
+
+    for (int i = 0; i < Degree - 1; ++i)
+    {
+        if (BSpline.U[i] != BSpline.U[i + 1])
+        {
+            return KNOTS_IS_UNCLAMPED;
+        }
+
+        if (BSpline.U[KnotNum - 1 - i] != BSpline.U[KnotNum - 1 - i - 1])
+        {
+            return KNOTS_IS_UNCLAMPED;
+        }
+    }
+
+    return SUCCESS;
+}
+
 
 /*!
  * \brief DecomposeCurve
  * 功能: 将Nurbs曲线分为bezier曲线段.
- * 算法源自 The Nurbs Book A5.6.
+ * 算法源自 The BSpline Book A5.6.
  * \param n 控制点数-1
  * \param p 次数
  * \param U 节点数组 [U0, U1, ... ... Un]
@@ -268,7 +323,7 @@ int GeometryCompute::RecursiveBezier(Point Pts[], int Degree, int Level, PointAr
  * \param Qw 输出, Qw[j][k]返回第j段第k个控制点
  * \return
  */
-int GeometryCompute::DecomposeCurve(int n, int p, const double *U, const Point *Pw,
+int BSplineSubdivision::DecomposeCurve(int n, int p, const double *U, const Point *Pw,
                                     int &nb, Point *Qw)
 {
     const int m = n + p + 1;    /* 节点数 */
@@ -324,23 +379,6 @@ int GeometryCompute::DecomposeCurve(int n, int p, const double *U, const Point *
             b++;
         }
     }
-
-    return SUCCESS;
-}
-
-int GeometryCompute::AddPoint(double Pt[], int Dim)
-{
-    if (mPtIndex+Dim-1 >= mPtTotalSize/sizeof(double))
-    {
-        return NOT_ENOUGH_MEMERY;
-    }
-
-    for (int i = 0; i < Dim; ++i)
-    {
-        mPtMem[mPtIndex+i] = Pt[i];
-    }
-
-    mPtIndex += Dim;
 
     return SUCCESS;
 }

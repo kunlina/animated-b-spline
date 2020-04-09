@@ -42,7 +42,7 @@ file(GLOB SOURCES "*.cpp" "*.h" "*.ui" "*.qrc")
 add_executable(BezierCurve ${SOURCES})
 
 target_link_libraries(BezierCurve bezier)
-target_link_libraries(BezierCurve geometry)
+target_link_libraries(BezierCurve kbspline)
 target_link_libraries(BezierCurve qwtplot3d)
 target_link_libraries(BezierCurve GLU)
 target_link_libraries(BezierCurve Qt5::Core)

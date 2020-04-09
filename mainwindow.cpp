@@ -68,7 +68,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->ControlLine->setChecked(dspSettings.showControlLines);
 
     ui->torence->setValue(easybezierInterpolator.GetTolerance());
-    ui->torence->setMinimum(easybezierInterpolator.GetMinTolerance());
+    ui->torence->setMinimum(0.000001);
     ui->controlPtSlider->setValue(dspSettings.controlPointSize);
 
     // bind ui
@@ -171,23 +171,23 @@ void MainWindow::finalInterpolateCurve()
     mNurbsCurve.U = knotVector.data();
     mNurbsCurve.Pw =ctrlPnts.data();
 
-    PointArray ptout;
-    ptout.validIndex = 0;
-    ptout.totalNum = 1000;
-    ptout.points = (Point *)malloc(ptout.totalNum * sizeof(Point));
+    KBSpline::PointArray ptout;
+    ptout.ValidIndex = 0;
+    ptout.TotalNum = 1000;
+    ptout.Points = (KBSpline::Point *)malloc(ptout.TotalNum * sizeof(KBSpline::Point));
 
     int ret = easybezierInterpolator.DecomposeNurbsToLine(mNurbsCurve, ptout);
-    if (ret != GeometryCompute::SUCCESS)  {
+    if (ret != KBSpline::SUCCESS)  {
         qWarning("DecomposeNurbsToLine error: %d.", ret);
     }
 
     subdiviedPnts.clear();
     QPointF tmp;
-    for (int i = 0; i < ptout.validIndex; ++i) {
-        subdiviedPnts.push_back(ptout.points[i]);
+    for (int i = 0; i < ptout.ValidIndex; ++i) {
+        subdiviedPnts.push_back(ptout.Points[i]);
     }
 
-    free(ptout.points);
+    free(ptout.Points);
 }
 
 #if 0
@@ -207,7 +207,7 @@ void MainWindow::easyInterpolateCurve()
     int segnum = 0;
     Point bezierCPs[100 * (degree+1)];
     int ret = easybezierInterpolator.DecomposeCurve(n, degree, knots, cps, segnum, bezierCPs);
-    if (ret != GeometryCompute::SUCCESS)  {
+    if (ret != BSplineSubdivision::SUCCESS)  {
         qWarning("error!");
         return;
     }
@@ -234,27 +234,27 @@ void MainWindow::easyInterpolateCurve()
             pts[i].y = boorNetPoints[counter+i].y();
         }
         ControlPoints cpts;
-        cpts.points = pts;
+        cpts.Points = pts;
         cpts.degree = 3;
 
         PointArray ptout;
-        ptout.validIndex = 0;
-        ptout.totalNum = 1000;
-        ptout.points = (Point *)malloc(ptout.totalNum * sizeof(Point));
+        ptout.ValidIndex = 0;
+        ptout.TotalNum = 1000;
+        ptout.Points = (Point *)malloc(ptout.TotalNum * sizeof(Point));
 
         ret = easybezierInterpolator.InterpolateBezier(cpts, ptout);
-        if (ret != GeometryCompute::SUCCESS)  {
+        if (ret != BSplineSubdivision::SUCCESS)  {
             qWarning("Interpolate error %d.", ret);
         }
 
         QPointF tmp;
-        for (int i = 0; i < ptout.validIndex; ++i) {
-            tmp.setX(ptout.points[i].x);
-            tmp.setY(ptout.points[i].y);
+        for (int i = 0; i < ptout.ValidIndex; ++i) {
+            tmp.setX(ptout.Points[i].x);
+            tmp.setY(ptout.Points[i].y);
             subdiviedPnts.push_back(tmp);
         }
 
-        free(ptout.points);
+        free(ptout.Points);
     }
 
     subdiviedPnts.push_back(*(ctrlPnts.last()));
@@ -262,7 +262,7 @@ void MainWindow::easyInterpolateCurve()
 #endif
 
 #if 0
-/// interpolateCurve - calculate new control points with de Boor algorithm,
+/// interpolateCurve - calculate new control Points with de Boor algorithm,
 /// break curve into multiple Bezier curves and interpolate each Bezier curve.
 void MainWindow::interpolateCurve()
 {
@@ -283,7 +283,7 @@ void MainWindow::interpolateCurve()
 }
 #endif
 
-/// clearPoints - delete all control points properly.
+/// clearPoints - delete all control Points properly.
 void MainWindow::clearPoints()
 {
     ctrlPnts.clear();
@@ -299,7 +299,7 @@ void MainWindow::addControlPoint()
     int y = qrand() % (y_border - 50);
     int z = qrand() % (z_border - 50);
 
-    ctrlPnts.push_back(Point(x, y, z));
+    ctrlPnts.push_back(KBSpline::Point(x, y, z));
 }
 
 void MainWindow::showControlPoints()
@@ -326,7 +326,7 @@ void MainWindow::updateStatusBar()
     ui->statusBar->showMessage(content);
 }
 
-/// showRandomSpline - generate random control points and show them.
+/// showRandomSpline - generate random control Points and show them.
 void MainWindow::showRandomSpline()
 {
     clearPoints();
@@ -343,7 +343,7 @@ void MainWindow::on_startStopButton_clicked()
     showRandomSpline();
 }
 
-/// update2DView - calculate content of the scene based on control points and show
+/// update2DView - calculate content of the scene based on control Points and show
 /// it in graphicsView.
 void MainWindow::update2DView(int skipId)
 {
@@ -381,7 +381,7 @@ void MainWindow::update2DView(int skipId)
         }
     }
 
-    // Show control points.
+    // Show control Points.
     total = ctrlPnts.size();
     for (int i = 0; i < total; ++i) {
         if (dspSettings.showControlLines && i != total - 1) {
@@ -404,7 +404,7 @@ void MainWindow::update2DView(int skipId)
         }
     }
 
-    // Show boor net points.
+    // Show boor net Points.
     for (QPolygonF::iterator pointIt = boorNetPoints.begin(),
          pointEnd = boorNetPoints.end(); pointIt != pointEnd; ++pointIt) {
         if (dspSettings.showBoorLines && pointIt != boorNetPoints.end() - 1)
@@ -514,7 +514,7 @@ void MainWindow::onTorence_valueChanged(double value)
 }
 
 
-/// moveCurve - moves control points according to its speed and updates view.
+/// moveCurve - moves control Points according to its speed and updates view.
 void MainWindow::moveCurve()
 {
     if (controlPointsSpeed.size() != ctrlPnts.size()) {
@@ -613,7 +613,7 @@ void MainWindow::update3DWidget()
 {
     Qwt3D::TripleVector data;
     for (int i = 0; i < subdiviedPnts.size(); ++i) {
-        Point pt(subdiviedPnts.at(i));
+        KBSpline::Point pt(subdiviedPnts.at(i));
         data.push_back(Qwt3D::Triple(pt.x, pt.y, pt.z));
     }
     m3DPlotWidet->setPointsOnCurve(data);
