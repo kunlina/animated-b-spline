@@ -5,9 +5,9 @@ set(CMAKE_VERBOSE_MAKEFILE OFF)
 project("animated-b-spline")
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fno-stack-protector")
 else ()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG -fno-stack-protector")
 endif (CMAKE_BUILD_TYPE STREQUAL "Release")
 
 ###########
